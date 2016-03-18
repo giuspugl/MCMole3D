@@ -98,7 +98,7 @@ class Cloud_Population(object):
 		h,edges=np.histogram(self.r,bins=200,normed=True)
 		bins=np.array([(edges[i]+edges[i+1])/2. for i in range(len(h))])
 		area=np.array([(edges[i+1]-edges[i])*h[i] for i in range(len(h))])
-		fig=plt.figure(figsize=(15,30))
+		fig=plt.figure(figsize=(15,15))
 		plt.xlim([0,12])
 		plt.subplot(2,3,1)
 		h,bins,p=plt.hist(self.r,200,normed=0,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
