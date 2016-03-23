@@ -98,65 +98,75 @@ class Cloud_Population(object):
 		h,edges=np.histogram(self.r,bins=200,normed=True)
 		bins=np.array([(edges[i]+edges[i+1])/2. for i in range(len(h))])
 		area=np.array([(edges[i+1]-edges[i])*h[i] for i in range(len(h))])
-		fig=plt.figure(figsize=(20,15))
+		fig=plt.figure(figsize=(12,9))
 		plt.xlim([0,12])
-		plt.subplot(2,3,1)
+		#plt.subplot(2,3,1)
+		plt.subplot(2,2,1)
 		h,bins,p=plt.hist(self.r,200,normed=0,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
 		#import matplotlib.mlab as mlab
 		#y = mlab.normpdf( bins, 5.3, 2.5/(np.sqrt(2.*np.log(2.))))
 		#plt.plot(bins, y, 'r--', linewidth=1)
 
-		plt.xlabel(r'$R_{gal}\, \mathrm{[kpc]}$ ')
+		plt.xlabel(r'$R_{gal}\,$ [kpc]')
+
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
-		plt.ylabel('# clouds per bin')
+		plt.ylabel('N per bin')
 		plt.grid(True)
 		
-		plt.subplot(2,3,2)
+		#plt.subplot(2,3,2)
 		radtodeg=180./np.pi
-		plt.hist(self.phi*radtodeg,bins=np.linspace(0.,360,5),histtype='stepfilled',alpha=0.3)
-		plt.xlabel(r'$\phi \, \mathrm{[deg]}$ ')
-		plt.ylabel('# clouds per bin')
-		plt.grid(True)
+		#plt.hist(self.phi*radtodeg,bins=np.linspace(0.,360,5),histtype='stepfilled',alpha=0.3)
+		#plt.xlabel(r'$\phi \, \mathrm{[deg]}$ ')
+		#plt.ylabel('N per bin')
+		#plt.grid(True)
 
-		plt.subplot(2,3,3)
+		plt.subplot(2,2,4)
 		if self.model=='Spherical':
 			plt.hist(np.cos(self.theta),bins=np.linspace(-1.,1.,5),histtype='stepfilled',alpha=0.3)
 			plt.xlabel(r'$\cos(\theta )\, $ ')
-			plt.ylabel('# clouds per bin')
-			plt.grid(True)
-			plt.subplot(2,3,6)
+			plt.ylabel('N per bin')
+		#	plt.grid(True)
+		#	plt.subplot(2,3,6)
 
-			plt.hist(self.lat*radtodeg,bins=np.linspace(-100,100,40),histtype='stepfilled',alpha=0.3)
-			plt.xlabel(r'$b \, \mathrm{[deg]}$ ')
-			plt.ylabel('# clouds per bin')
-			plt.grid(True)
+		#	plt.hist(self.lat*radtodeg,bins=np.linspace(-100,100,40),histtype='stepfilled',alpha=0.3)
+		#	plt.xlabel(r'$b \, \mathrm{[deg]}$ ')
+		#	plt.ylabel('N per bin')
+		#	plt.grid(True)
 		elif self.model=='Axisymmetric':
 			plt.hist(self.zeta*1.e3,80,histtype='stepfilled',alpha=0.3,label='Bin = 5 pc')
 			plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
 			plt.xlabel('Vertical position [pc] ')
-			plt.ylabel('# clouds per bin')
-			plt.grid(True)
+			plt.ylabel('N per bin')
+		#	plt.grid(True)
 
-			plt.subplot(2,3,6)
-			plt.hist(self.lat*radtodeg,bins=np.linspace(-10,10,40),histtype='stepfilled',alpha=0.3)
-			plt.xlabel(r'$b \, \mathrm{[deg]}$ ')
-			plt.ylabel('# clouds per bin')
+		#	plt.subplot(2,3,6)
+		#	plt.hist(self.lat*radtodeg,bins=np.linspace(-10,10,40),histtype='stepfilled',alpha=0.3)
+		#	plt.xlabel(r'$b \, \mathrm{[deg]}$ ')
+		#	plt.ylabel('N per bin')
 		plt.grid(True)
 
-		plt.subplot(2,3,4)
+		plt.subplot(2,2,3)
 		plt.hist(self.d_sun,200,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
 		plt.xlabel('Heliocentric Distance [kpc]')
-		plt.ylabel('# clouds per bin')
+		plt.ylabel('N per bin')
 		plt.grid(True)
 		
-		plt.subplot(2,3,5)
-		plt.hist(self.long*radtodeg,bins=np.linspace(0,360,72),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
+		plt.subplot(2,2,2)
+		m=np.where(self.long >=np.pi)[0]
+		l=self.long*0. 
+		l=self.long 
+		l[m]=self.long[m] - 2*np.pi 
+		plt.hist(l*radtodeg,bins=np.linspace(-180,180,72),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
+
+		#plt.hist(self.long*radtodeg,bins=np.linspace(0,360,72),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
 		plt.grid(True)
 		#plt.hist( (self.long)*radtodeg,bins=np.linspace(180,360,36),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
-		plt.xlabel(r'$ \ell \, \mathrm{[deg]}$ ')
-		plt.ylabel('# clouds per bin')
+		plt.xlabel('Galactic Longitude [deg] ')
+		plt.ylabel('N per bin')
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
+		plt.xlim([180,-180])
+		#plt.xlim([0,360])
 
 
 		if figname is None:
@@ -165,8 +175,8 @@ class Cloud_Population(object):
 			plt.savefig(figname)
 		plt.close()
 	
-	def plot_radial(self,X,ylabel,figname=None): 
-		plt.plot(self.r,X,'.')
+	def plot_radial(self,X,ylabel,figname=None,color='b'): 
+		plt.plot(self.r,X,color+'-')
 		plt.xlabel(r'$R_{gal}\, \mathrm{[kpc]}$ ')
 		plt.ylabel(ylabel)
 		plt.yscale('log')
@@ -337,6 +347,12 @@ class Cloud_Population(object):
 		self.d_sun=g.distance.kpc
 		self.lat=g.b.rad
 		self.long=g.l.rad
+	@property 
+	def emissivity(self):
+		return self.get_pop_emissivities_sizes()[0]
+	@property 
+	def sizes(self):
+		return self.get_pop_emissivities_sizes()[1]
 
 		
 class Collect_Clouds(Cloud_Population):
