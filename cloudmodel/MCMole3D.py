@@ -1,6 +1,8 @@
 import h5py as h5
 import healpy as hp
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import numpy as np 
 import sys
 from scipy.stats import norm,gaussian_kde
@@ -26,6 +28,26 @@ class Cloud(object):
 		A 	=	60 #200 K km/s looks to be too much
 		R0	=	3.59236 #kpc
 		return A*np.exp(-R/R0)
+	
+	def size_function(self,R):
+		"""
+		Compute the size from a power-law distribution function with spectral index alpha_L(see Heyer Dame 2015).
+		In the outer Galaxy a lower spectral index has been measured ~3.3, whereas in the inner Galaxy a 
+		steeper one 3.9.
+		As a range of size we have considered [1,50] pc.
+		"""
+		sizemin,sizemax=10.,50.
+		if R<8.3: 
+			alpha_L=3.9
+		else :
+			alpha_L=3.3
+		#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
+		k=(1-alpha_L)/(sizemax**(1-alpha_L)- sizemin**(1-alpha_L))
+
+		x=np.random.uniform()
+		return ((1-alpha_L)/k * x + (sizemin)**(1-alpha_L))**(1./(1-alpha_L))
+
+
 	def assign_sun_coord(self,d,latit,longit):
 		self.has_suncoord=True
 		self.X_sun=[d,latit,longit]
@@ -37,9 +59,10 @@ class Cloud(object):
 
 		if (size is None) or (em is  None): 
 			self.W=self.emissivity(x1)
-			self.L=norm.rvs(loc=10., scale=30., size=1)
-			while self.L<0:
-				self.L=norm.rvs(loc=10., scale=30., size=1)
+			self.L=self.size_function(x1)
+		#	self.L=norm.rvs(loc=10., scale=30., size=1)
+			while self.L<1. :
+				self.L=self.size_function(x1)
 		else:
 			self.L=size
 			self.W=em
@@ -50,7 +73,6 @@ class Cloud_Population(object):
 	"""
 
 	def cartesianize_coordinates(self,array):
-		
 		return coord.Galactocentric(array)
 
 	def __call__(self): 
@@ -75,15 +97,15 @@ class Cloud_Population(object):
 				c.assign_sun_coord(d,latit,longit)
 				self.clouds.append(c)
 		elif self.model=='Axisymmetric':
-			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 75 pc *exp((x/R0)^2 ), with R0~12kpc
+			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
 			# for reference see fig.6 of Heyer and Dame, 2015
-			fwhm=lambda R: 0.075*np.exp((R/12)**2 )
+			fwhm=lambda R: 0.1*np.cosh((R/9.))
 			self.zeta=self.phi*0.
 			for i,x,p in zip(np.arange(self.n),self.r,self.phi): 
 				if x<=0.: 
 					self.r[i]=0.
 					x=0.
-				self.zeta[i]=np.random.normal(loc=0.,scale=fwhm(x))
+				self.zeta[i]=np.random.normal(loc=0.,scale=fwhm(x)/(2.*np.sqrt(2.*np.log(2.))))
 				self.clouds.append(Cloud(i,x,p,self.zeta[i],size=None,em=None))
 
 			coord_array=coord.CylindricalRepresentation(self.r*u.kpc,self.phi*u.rad,self.zeta*u.kpc )
@@ -99,58 +121,64 @@ class Cloud_Population(object):
 		bins=np.array([(edges[i]+edges[i+1])/2. for i in range(len(h))])
 		area=np.array([(edges[i+1]-edges[i])*h[i] for i in range(len(h))])
 		fig=plt.figure(figsize=(12,9))
-		plt.xlim([0,12])
+		
 		#plt.subplot(2,3,1)
 		plt.subplot(2,2,1)
 		h,bins,p=plt.hist(self.r,200,normed=0,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
-		#import matplotlib.mlab as mlab
-		#y = mlab.normpdf( bins, 5.3, 2.5/(np.sqrt(2.*np.log(2.))))
-		#plt.plot(bins, y, 'r--', linewidth=1)
-
+		ax = plt.gca()
+		plt.xlim([0,12])
+		xmajorLocator = MultipleLocator(2)
+		xminorLocator = MultipleLocator(.5)
+		xmajorFormatter = FormatStrFormatter('%d')
+		ax.xaxis.set_major_locator(xmajorLocator)
+		ax.xaxis.set_major_formatter(xmajorFormatter)
+		ax.xaxis.set_minor_locator(xminorLocator)
+		
+		ymajorFormatter = FormatStrFormatter('%1.1e')
+		ax.yaxis.set_major_formatter(ymajorFormatter)
 		plt.xlabel(r'$R_{gal}\,$ [kpc]')
 
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
 		plt.ylabel('N per bin')
-		plt.grid(True)
-		
-		#plt.subplot(2,3,2)
 		radtodeg=180./np.pi
-		#plt.hist(self.phi*radtodeg,bins=np.linspace(0.,360,5),histtype='stepfilled',alpha=0.3)
-		#plt.xlabel(r'$\phi \, \mathrm{[deg]}$ ')
-		#plt.ylabel('N per bin')
-		#plt.grid(True)
-
 		plt.subplot(2,2,4)
 		if self.model=='Spherical':
 			plt.hist(np.cos(self.theta),bins=np.linspace(-1.,1.,5),histtype='stepfilled',alpha=0.3)
 			plt.xlabel(r'$\cos(\theta )\, $ ')
-			plt.ylabel('N per bin')
-		#	plt.grid(True)
-		#	plt.subplot(2,3,6)
-
-		#	plt.hist(self.lat*radtodeg,bins=np.linspace(-100,100,40),histtype='stepfilled',alpha=0.3)
-		#	plt.xlabel(r'$b \, \mathrm{[deg]}$ ')
-		#	plt.ylabel('N per bin')
-		#	plt.grid(True)
 		elif self.model=='Axisymmetric':
 			plt.hist(self.zeta*1.e3,80,histtype='stepfilled',alpha=0.3,label='Bin = 5 pc')
 			plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
 			plt.xlabel('Vertical position [pc] ')
-			plt.ylabel('N per bin')
-		#	plt.grid(True)
+			plt.xlim([-200,200])
+			ax = plt.gca()
 
-		#	plt.subplot(2,3,6)
-		#	plt.hist(self.lat*radtodeg,bins=np.linspace(-10,10,40),histtype='stepfilled',alpha=0.3)
-		#	plt.xlabel(r'$b \, \mathrm{[deg]}$ ')
-		#	plt.ylabel('N per bin')
-		plt.grid(True)
+			xmajorLocator = MultipleLocator(100)
+			xminorLocator = MultipleLocator(10)
+			xmajorFormatter = FormatStrFormatter('%d')
+			ax.xaxis.set_major_locator(xmajorLocator)
+			ax.xaxis.set_major_formatter(xmajorFormatter)
+			ax.xaxis.set_minor_locator(xminorLocator)
+			
+			ymajorFormatter = FormatStrFormatter('%1.1e')
+			ax.yaxis.set_major_formatter(ymajorFormatter)
 
 		plt.subplot(2,2,3)
 		plt.hist(self.d_sun,200,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
 		plt.xlabel('Heliocentric Distance [kpc]')
+		plt.xlim([0,20])
+		ax = plt.gca()
+		xmajorLocator = MultipleLocator(5)
+		xminorLocator = MultipleLocator(1)
+		xmajorFormatter = FormatStrFormatter('%d')
+		ax.xaxis.set_major_locator(xmajorLocator)
+		ax.xaxis.set_major_formatter(xmajorFormatter)
+		ax.xaxis.set_minor_locator(xminorLocator)
+			
+		ymajorFormatter = FormatStrFormatter('%1.1e')
+		ax.yaxis.set_major_formatter(ymajorFormatter)
 		plt.ylabel('N per bin')
-		plt.grid(True)
+		
 		
 		plt.subplot(2,2,2)
 		m=np.where(self.long >=np.pi)[0]
@@ -158,17 +186,22 @@ class Cloud_Population(object):
 		l=self.long 
 		l[m]=self.long[m] - 2*np.pi 
 		plt.hist(l*radtodeg,bins=np.linspace(-180,180,72),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
-
-		#plt.hist(self.long*radtodeg,bins=np.linspace(0,360,72),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
-		plt.grid(True)
-		#plt.hist( (self.long)*radtodeg,bins=np.linspace(180,360,36),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
+		ax = plt.gca()
+		xmajorLocator = MultipleLocator(100)
+		xminorLocator = MultipleLocator(10)
+		xmajorFormatter = FormatStrFormatter('%d')
+		ax.xaxis.set_major_locator(xmajorLocator)
+		ax.xaxis.set_major_formatter(xmajorFormatter)
+		ax.xaxis.set_minor_locator(xminorLocator)
+			
+		ymajorFormatter = FormatStrFormatter('%1.1e')
+		ax.yaxis.set_major_formatter(ymajorFormatter)
+		
 		plt.xlabel('Galactic Longitude [deg] ')
-		plt.ylabel('N per bin')
+		
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
 		plt.xlim([180,-180])
-		#plt.xlim([0,360])
-
-
+		
 		if figname is None:
 			plt.show()
 		else:
@@ -191,12 +224,11 @@ class Cloud_Population(object):
 		x0	=	self.cartesian_galactocentric.x.value
 		x1	=	self.cartesian_galactocentric.y.value
 		x2	=	self.cartesian_galactocentric.z.value
-
 		planes={'x-y':[x0,x1],'x-z':[x0,x2],'y-z':[x1,x2]}
 		c=1
 		fig=plt.figure(figsize=(15,15))
 		gs  = gridspec.GridSpec(3, 1 )#width_ratios=[1.5, 2,1.5],height_ratios=[1.5,2,1.5])
-
+		
 		for a in planes.keys(): 
 			x,y=planes[a]
 			a1,a2=a.split("-",2)
@@ -215,14 +247,14 @@ class Cloud_Population(object):
 			hh[hh < thresh] = np.nan # fill the areas with low density by NaNs
 			ax=plt.subplot(gs[c-1])
 		
-			im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=np.array(xyrange).flatten(),interpolation='gaussian', origin='upper')
 			ax.set_xlabel(a1+' [kpc]')
 			ax.set_ylabel(a2+' [kpc]')
 			if a2=='z' and self.model=='Axisymmetric':
-				ax.set_yticks((-.5,0,.5))
+				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=np.array(xyrange).flatten(),interpolation='gaussian', origin='upper')
+				ax.set_yticks((-.5,0,.5))		
 			else:
+				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=np.array(xyrange).flatten(),interpolation='gaussian', origin='upper')
 				ax.plot(xdat1, ydat1, '.',color='darkblue')
-			
 			c+=1
 		fig.subplots_adjust(right=0.8)
 		cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
@@ -271,18 +303,23 @@ class Cloud_Population(object):
 		self.phi=g["Phi"][...]
 		self.L=g["Sizes"][...]
 		self.W=g["Emissivity"][...]
+		coord_array=np.zeros(self.n)
 		if self.models[self.model]==1:
 			self.theta=g["Theta"][...]
+			coord_array=coord.PhysicsSphericalRepresentation(self.phi*u.rad,self.theta * u.rad,self.r*u.kpc )
 		elif self.models[self.model]==2: 
 			self.zeta=g["Z"][...]
+			coord_array=coord.CylindricalRepresentation(self.r*u.kpc,self.phi*u.rad,self.zeta*u.kpc )
 		self.d_sun=g["D_sun"][...]
 		self.long=g["Gal_longitude"][...]
 		self.lat=g["Gal_Latitude"][...]
-
+		
+		self.cartesian_galactocentric = self.cartesianize_coordinates(coord_array)
 		cols=bash_colors()
+		f.close()
 		print cols.bold("////// \t read from "+filename+"\t ////////")
-
 		pass
+
 	def initialize_cloud_population_from_output(self,filename): 
 		self.clouds=[]
 		self.read_pop_fromhdf5(filename)
@@ -301,7 +338,7 @@ class Cloud_Population(object):
 	def get_pop_emissivities_sizes(self):
 		sizes,emiss=[],[]
 		for c in self.clouds:
-			sizes.append(c.L[0])
+			sizes.append(c.L)
 			emiss.append(c.W)
 		return  emiss, sizes
 
