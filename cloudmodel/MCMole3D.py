@@ -12,6 +12,7 @@ import astropy.units  as u
 import astropy.coordinates  as coord
 
 
+
 class Cloud(object):
 	def print_cloudinfo(self):
 		if not self.has_suncoord:
@@ -36,16 +37,16 @@ class Cloud(object):
 		steeper one 3.9.
 		As a range of size we have considered [1,50] pc.
 		"""
-		sizemin,sizemax=10.,50.
+		sizemin,sizemax=1,50.
 		if R<8.3: 
 			alpha_L=3.9
 		else :
 			alpha_L=3.3
 		#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
-		k=(1-alpha_L)/(sizemax**(1-alpha_L)- sizemin**(1-alpha_L))
-
+		k=(sizemax**(1-alpha_L)- sizemin**(1-alpha_L))
+		#plot_size_function(sizemin,sizemax)
 		x=np.random.uniform()
-		return ((1-alpha_L)/k * x + (sizemin)**(1-alpha_L))**(1./(1-alpha_L))
+		return (k * x + (sizemin)**(1-alpha_L))**(1/(1-alpha_L))
 
 
 	def assign_sun_coord(self,d,latit,longit):
@@ -430,3 +431,23 @@ class Collect_Clouds(Cloud_Population):
 
 
 
+def plot_size_function(sizemin,sizemax):
+	for alpha_L in [3.9,3.3]:
+	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
+		k=(sizemax**(1-alpha_L)- sizemin**(1-alpha_L))
+		x=np.random.uniform(size=40000)
+		sizes=(k * x + (sizemin)**(1-alpha_L))**(1/(1-alpha_L))
+		l=np.linspace(sizemin,sizemax,256)
+		p=lambda l: 1./k*(l**(1-alpha_L) - sizemin**(1-alpha_L))
+		plt.subplot(2,1,1)
+		plt.xlim([1,40])
+		plt.hist(sizes,bins=100,normed=True)
+		plt.ylabel(r'$\xi(L)$')
+		plt.subplot(2,1,2)
+		plt.xlim([1,40])
+		plt.plot(l,p(l),label=r'$\alpha_L=$'+str(alpha_L))
+		plt.xlabel(r'$L $ [ pc ]')
+		plt.ylabel(r'$\mathcal{P}(<L)$')
+	plt.legend(loc='best')
+	plt.savefig('/home/peppe/pb2/figures/sizefunction.pdf')
+	pass 
