@@ -14,6 +14,19 @@ import astropy.coordinates  as coord
 
 
 class Cloud(object):
+	
+	def assign_sun_coord(self,d,latit,longit):
+		self.has_suncoord=True
+		self.X_sun=[d,latit,longit]
+		pass 
+	def emissivity(self,R): 
+		"""
+		replicating the profile in Heyer Dame 2015
+		"""
+		A 	=	globals()['emiss_params'][0]
+		R0  =	globals()['emiss_params'][1]
+		return A*np.exp(-R/R0)
+
 	def print_cloudinfo(self):
 		if not self.has_suncoord:
 			print "%d \t %g \t %g \t %g \t %g \t %g\n"%(self.id,self.X[0],self.X[1],self.X[2],self.W,self.L)
@@ -21,38 +34,38 @@ class Cloud(object):
 			print "%d \t %g \t %g \t %g \t %g \t %g\t %g \t %g \t %g \n"%(self.id,self.X[0],self.X[1],self.X[2],self.W,self.L,\
 																	self.X_sun[0],self.X_sun[1]*180./np.pi,self.X_sun[2]*180./np.pi)
 		pass
-
-	def emissivity(self,R): 
-		"""
-		replicating the profile in Heyer Dame 2015
-		"""
-		A 	=	60 #200 K km/s looks to be too much
-		R0	=	3.59236 #kpc
-		return A*np.exp(-R/R0)
-	
 	def size_function(self,R):
 		"""
-		Compute the size from a power-law distribution function with spectral index alpha_L(see Heyer Dame 2015).
-		In the outer Galaxy a lower spectral index has been measured ~3.3, whereas in the inner Galaxy a 
-		steeper one 3.9.
-		As a range of size we have considered [1,50] pc.
+		Compute the size in a very wide range of cloud sizes  [0.1,50]pc, from random numbers following 
+		the probability distribution function coming from the cloud size function.
+		We split it  in two parts : L>10pc  a decreasing power-law distribution has been asssumed with 
+		spectral index alpha_L(see Heyer Dame 2015). In the outer Galaxy a lower spectral index has been measured ~3.3, 
+		whereas in the inner Galaxy a steeper one 3.9.
+		If L < 10pc we assume a positive power-law with alpha1=0.8 . 
+
 		"""
-		sizemin,sizemax=1,50.
+		s1=globals()['L0']
+		s0,s2=0.3,50.
+		alpha1=0.8
+
 		if R<8.3: 
-			alpha_L=3.9
+			alpha2=3.9
 		else :
-			alpha_L=3.3
+			alpha2=3.3
+		
 		#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
-		k=(sizemax**(1-alpha_L)- sizemin**(1-alpha_L))
-		#plot_size_function(sizemin,sizemax)
+		k2=1./(  1./(alpha1 + 1.) *s1**(-alpha1-alpha2) *( s1**(1+alpha1 )- s0**(1+alpha1) ) \
+			+ 1./(1.- alpha2 )* (s2**(1-alpha2)- s1**(1-alpha2)))
+		k1=s1**(-alpha1-alpha2) * k2
+		X10	=	k1/(alpha1+1.)*(s1**(1+alpha1 )- s0**(1+alpha1))
+		X21	=	k2/(1.-alpha2)*(s2**(1-alpha2)- s1**(1-alpha2))
+
 		x=np.random.uniform()
-		return (k * x + (sizemin)**(1-alpha_L))**(1/(1-alpha_L))
-
-
-	def assign_sun_coord(self,d,latit,longit):
-		self.has_suncoord=True
-		self.X_sun=[d,latit,longit]
-		pass 
+		if x<X10: 
+			return ((alpha1+1.)/k1 * x + (s0)**(1+alpha1))**(1/(1+alpha1))
+		else :
+			return  ((1-alpha2)/k2 * (x-X10)  + (s1)**(1-alpha2))**(1/(1-alpha2)) 
+	
 	def __init__(self,idcloud,x1,x2,x3,size=None,em=None):
 		self.id=idcloud
 		self.X=[x1,x2,x3]
@@ -62,8 +75,6 @@ class Cloud(object):
 			self.W=self.emissivity(x1)
 			self.L=self.size_function(x1)
 		#	self.L=norm.rvs(loc=10., scale=30., size=1)
-			while self.L<1. :
-				self.L=self.size_function(x1)
 		else:
 			self.L=size
 			self.W=em
@@ -79,7 +90,8 @@ class Cloud_Population(object):
 	def __call__(self): 
 
 		self.clouds=[]
-		self.r= norm.rvs(loc=5.3,scale=2.5/(np.sqrt(2.*np.log(2.))),size=self.n)
+
+		self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
 		a=np.random.uniform(low=0.,high=1.,size=self.n)
 		self.phi=2.*np.pi*a
 		if self.model=='Spherical':
@@ -100,13 +112,16 @@ class Cloud_Population(object):
 		elif self.model=='Axisymmetric':
 			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
 			# for reference see fig.6 of Heyer and Dame, 2015
-			fwhm=lambda R: 0.1*np.cosh((R/9.))
+			sigma_z0=self.z_distr[0]
+			R_z0=self.z_distr[1]
+
+			sigma_z=lambda R: sigma_z0*np.cosh((R/R_z0))
 			self.zeta=self.phi*0.
 			for i,x,p in zip(np.arange(self.n),self.r,self.phi): 
 				if x<=0.: 
 					self.r[i]=0.
 					x=0.
-				self.zeta[i]=np.random.normal(loc=0.,scale=fwhm(x)/(2.*np.sqrt(2.*np.log(2.))))
+				self.zeta[i]=np.random.normal(loc=0.,scale=sigma_z(x) )
 				self.clouds.append(Cloud(i,x,p,self.zeta[i],size=None,em=None))
 
 			coord_array=coord.CylindricalRepresentation(self.r*u.kpc,self.phi*u.rad,self.zeta*u.kpc )
@@ -116,6 +131,40 @@ class Cloud_Population(object):
 			for c,d,latit,longit in zip(self.clouds,self.d_sun,self.lat,self.long):
 				c.assign_sun_coord(d,latit,longit)
 	
+	def compute_healpix_vec(self):
+		#convert latitude and longitude in healpix mapping 
+		rtod=180./np.pi
+		b_h=np.pi/2. - self.lat
+		l_h=self.long
+		vec=hp.ang2vec(b_h,l_h)
+		
+		return vec
+	def get_pop_emissivities_sizes(self):
+		sizes,emiss=[],[]
+		for c in self.clouds:
+			sizes.append(c.L)
+			emiss.append(c.W)
+		return  emiss, sizes
+	def heliocentric_coordinates(self):
+		g=self.cartesian_galactocentric.transform_to(coord.Galactic)
+		
+		self.d_sun=g.distance.kpc
+		self.lat=g.b.rad
+		self.long=g.l.rad
+	def initialize_cloud_population_from_output(self,filename): 
+		self.clouds=[]
+		self.read_pop_fromhdf5(filename)
+
+		if self.models[self.model]==1:
+			zipped=zip(np.arange(self.n),self.r,self.phi,self.theta,self.L,self.W,self.d_sun,self.lat,self.long)
+		elif self.models[self.model]==2:
+			zipped=zip(np.arange(self.n),self.r,self.phi,self.zeta,self.L,self.W,self.d_sun,self.lat,self.long)
+		for i,r,p,t,l,w,d,latit,longit in zipped: 
+			c=Cloud(i,r,p,t,size=l,em=w)
+			c.assign_sun_coord(d,latit,longit)
+			self.clouds.append(c)
+			c=None
+		pass 
 	def plot_histogram_population(self,figname=None):
 		
 		h,edges=np.histogram(self.r,bins=200,normed=True)
@@ -265,85 +314,6 @@ class Cloud_Population(object):
 		else:
 			plt.savefig(figname)
 		plt.close()
-
-
-	def write2hdf5(self,filename): 
-		W,L=self.get_pop_emissivities_sizes()
-		healpix_vecs=self.compute_healpix_vec()
-
-		f=h5.File(filename,'w')
-		g=f.create_group("Cloud_Population")
-		g.create_dataset('Healpix_Vec',np.shape(healpix_vecs),dtype=h5.h5t.IEEE_F64BE,data=healpix_vecs)
-		g.create_dataset('R',np.shape(self.r),dtype=h5.h5t.IEEE_F64BE,data=self.r)
-		g.create_dataset('Phi',np.shape(self.phi),dtype=h5.h5t.IEEE_F64BE,data=self.phi)
-		if self.models[self.model]==1:
-			g.create_dataset('Theta',np.shape(self.theta),dtype=h5.h5t.IEEE_F64BE,data=self.theta)
-		elif self.models[self.model]==2:
-			g.create_dataset('Z',np.shape(self.zeta),dtype=h5.h5t.IEEE_F64BE,data=self.zeta)
-
-		g.create_dataset('Sizes',np.shape(L),dtype=h5.h5t.IEEE_F64BE,data=L)
-		g.create_dataset('Emissivity',np.shape(W),dtype=h5.h5t.IEEE_F64BE,data=W)
-		g.create_dataset('D_sun',np.shape(self.d_sun),dtype=h5.h5t.IEEE_F64BE,data=self.d_sun)
-		g.create_dataset('Gal_Latitude',np.shape(self.lat),dtype=h5.h5t.IEEE_F64BE,data=self.lat)
-		g.create_dataset('Gal_longitude',np.shape(self.long),dtype=h5.h5t.IEEE_F64BE,data=self.long)
-
-		f.close()
-		pass
-	def compute_healpix_vec(self):
-		#convert latitude and longitude in healpix mapping 
-		rtod=180./np.pi
-		b_h=np.pi/2. - self.lat
-		l_h=self.long
-		vec=hp.ang2vec(b_h,l_h)
-		
-		return vec
-	def read_pop_fromhdf5(self,filename):
-		f=h5.File(filename,'r')
-		g=f["Cloud_Population"]
-		self.r=g["R"][...]
-		self.phi=g["Phi"][...]
-		self.L=g["Sizes"][...]
-		self.W=g["Emissivity"][...]
-		coord_array=np.zeros(self.n)
-		if self.models[self.model]==1:
-			self.theta=g["Theta"][...]
-			coord_array=coord.PhysicsSphericalRepresentation(self.phi*u.rad,self.theta * u.rad,self.r*u.kpc )
-		elif self.models[self.model]==2: 
-			self.zeta=g["Z"][...]
-			coord_array=coord.CylindricalRepresentation(self.r*u.kpc,self.phi*u.rad,self.zeta*u.kpc )
-		self.d_sun=g["D_sun"][...]
-		self.long=g["Gal_longitude"][...]
-		self.lat=g["Gal_Latitude"][...]
-		
-		self.cartesian_galactocentric = self.cartesianize_coordinates(coord_array)
-		cols=bash_colors()
-		f.close()
-		print cols.bold("////// \t read from "+filename+"\t ////////")
-		pass
-
-	def initialize_cloud_population_from_output(self,filename): 
-		self.clouds=[]
-		self.read_pop_fromhdf5(filename)
-
-		if self.models[self.model]==1:
-			zipped=zip(np.arange(self.n),self.r,self.phi,self.theta,self.L,self.W,self.d_sun,self.lat,self.long)
-		elif self.models[self.model]==2:
-			zipped=zip(np.arange(self.n),self.r,self.phi,self.zeta,self.L,self.W,self.d_sun,self.lat,self.long)
-		for i,r,p,t,l,w,d,latit,longit in zipped: 
-			c=Cloud(i,r,p,t,size=l,em=w)
-			c.assign_sun_coord(d,latit,longit)
-			self.clouds.append(c)
-			c=None
-		pass 
-
-	def get_pop_emissivities_sizes(self):
-		sizes,emiss=[],[]
-		for c in self.clouds:
-			sizes.append(c.L)
-			emiss.append(c.W)
-		return  emiss, sizes
-
-	
 	def print_pop(self):
 		cols=bash_colors()
 		print cols.header("###"*40)
@@ -368,7 +338,98 @@ class Cloud_Population(object):
 		for c in self.clouds:
 			c.print_cloudinfo()
 
+		pass
+
+	def read_pop_fromhdf5(self,filename):
+		f=h5.File(filename,'r')
+		g=f["Cloud_Population"]
+		self.r=g["R"][...]
+		self.phi=g["Phi"][...]
+		self.L=g["Sizes"][...]
+		self.W=g["Emissivity"][...]
+		coord_array=np.zeros(self.n)
+		if self.models[self.model]==1:
+			self.theta=g["Theta"][...]
+			coord_array=coord.PhysicsSphericalRepresentation(self.phi*u.rad,self.theta * u.rad,self.r*u.kpc )
+		elif self.models[self.model]==2: 
+			self.zeta=g["Z"][...]
+			coord_array=coord.CylindricalRepresentation(self.r*u.kpc,self.phi*u.rad,self.zeta*u.kpc )
+		self.d_sun=g["D_sun"][...]
+		self.long=g["Gal_longitude"][...]
+		self.lat=g["Gal_Latitude"][...]
+		
+		self.cartesian_galactocentric = self.cartesianize_coordinates(coord_array)
+		cols=bash_colors()
+		f.close()
+		print cols.bold("////// \t read from "+filename+"\t ////////")
+		pass
+	def set_parameters(self,radial_distr=[5.3,2.5],emissivity=[60,3.59236], thickness_distr=[0.1,9.],typical_size=10.):
+		"""
+		Set key-parameters to the population of clouds. 
+
+		- ``radial_distr``:{list}
+			:math:`(\mu_R,FWHM_R)` parameters to the  Galactic radius  distribution of the clouds, assumed Gaussian.  
+			Default  :math:`\mu_R= 5.3 \, ,\sigma_R=FWHM_R/\sqrt(2 \ln 2)= 2.12` kpc.
+		- ``thickness_distr``:{list}
+			:math:`(\FWHM_{z,0}, R_{z,0})` parameters to the vertical thickness of the Galactic plane 
+			increasing in the outer Galaxy with :math:`\sigma(z)=sigma_z(0) *cosh(R/R_{z,0})`.
+			Default  :math:`\sigma_{z,0}=0.1 \, , R_{z,0}=9` kpc. 
+		- ``emissivity``:{list}
+			Parameters to the emissivity radial profile, :math:`\epsilon(R)= \epsilon_0 \exp(- R/R_0)`.
+			Default Heyer and Dame values : :math:`\epsilon_0=60\, K km/s,\, R_0=3.6 \, kpc`.  
+		- ``typical_size``: {scalar}
+			Typical size of molecular clouds where we observe the peak in the size distribution function. 
+			Default :math:`L_0=10` pc. 
+		"""
+
+
+		self.R_params=list(radial_distr)
+		self.R_params[1]/=np.sqrt(2*np.log(2))
+		self.z_distr=list(thickness_distr)
+		self.z_distr[0]/=(2.*np.sqrt(2.*np.log(2.)))
+		globals()['L0']=typical_size
+		globals()['emiss_params']=emissivity
+
+
+		cols=bash_colors()
+		print cols.header("###"*20)
+		print cols.blue("Parameters  to MCMole3D")
+		print "---"*20
+		print cols.green("Model\t\t\t\t....\t"),cols.bold(self.model)
+		print cols.green("#clouds\t\t\t\t....\t"),cols.bold(self.n)
+		print cols.green("Molecular Ring [location,width]\t....\t"),cols.bold("%g,%g\t"%(self.R_params[0],self.R_params[1])),"kpc"
+		print cols.green("Central Midplane Thickness\t....\t"),cols.bold("%g\t"%(self.z_distr[0]*1000)),"pc"
+		print cols.green("Scale Radius Midplane Thickness\t....\t"),cols.bold("%g\t"%self.z_distr[1]),"kpc"
+		print cols.green("Amplitude Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[0]),"K km/s"
+		print cols.green("Scale Radius Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[1]),"kpc"
+		print cols.green("Cloud Typical size\t\t....\t"),cols.bold("%g\t"%typical_size),"pc"
+		print cols.header("###"*20)
+		
 		pass 
+
+	def write2hdf5(self,filename): 
+		W,L=self.get_pop_emissivities_sizes()
+		healpix_vecs=self.compute_healpix_vec()
+
+		f=h5.File(filename,'w')
+		g=f.create_group("Cloud_Population")
+		g.create_dataset('Healpix_Vec',np.shape(healpix_vecs),dtype=h5.h5t.IEEE_F64BE,data=healpix_vecs)
+		g.create_dataset('R',np.shape(self.r),dtype=h5.h5t.IEEE_F64BE,data=self.r)
+		g.create_dataset('Phi',np.shape(self.phi),dtype=h5.h5t.IEEE_F64BE,data=self.phi)
+		if self.models[self.model]==1:
+			g.create_dataset('Theta',np.shape(self.theta),dtype=h5.h5t.IEEE_F64BE,data=self.theta)
+		elif self.models[self.model]==2:
+			g.create_dataset('Z',np.shape(self.zeta),dtype=h5.h5t.IEEE_F64BE,data=self.zeta)
+
+		g.create_dataset('Sizes',np.shape(L),dtype=h5.h5t.IEEE_F64BE,data=L)
+		g.create_dataset('Emissivity',np.shape(W),dtype=h5.h5t.IEEE_F64BE,data=W)
+		g.create_dataset('D_sun',np.shape(self.d_sun),dtype=h5.h5t.IEEE_F64BE,data=self.d_sun)
+		g.create_dataset('Gal_Latitude',np.shape(self.lat),dtype=h5.h5t.IEEE_F64BE,data=self.lat)
+		g.create_dataset('Gal_longitude',np.shape(self.long),dtype=h5.h5t.IEEE_F64BE,data=self.long)
+
+		f.close()
+		pass
+ 
 	def __init__(self, N_clouds,model):
 		self.model=model
 		self.models={'Spherical':1,'Axisymmetric':2}
@@ -379,12 +440,7 @@ class Cloud_Population(object):
 		self.n= N_clouds
 		self.d_sun,self.lat,self.long =None,None,None
 
-	def heliocentric_coordinates(self):
-		g=self.cartesian_galactocentric.transform_to(coord.Galactic)
-		
-		self.d_sun=g.distance.kpc
-		self.lat=g.b.rad
-		self.long=g.l.rad
+
 	@property 
 	def emissivity(self):
 		return self.get_pop_emissivities_sizes()[0]
@@ -432,22 +488,70 @@ class Collect_Clouds(Cloud_Population):
 
 
 def plot_size_function(sizemin,sizemax):
+
 	for alpha_L in [3.9,3.3]:
 	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
+
 		k=(sizemax**(1-alpha_L)- sizemin**(1-alpha_L))
 		x=np.random.uniform(size=40000)
 		sizes=(k * x + (sizemin)**(1-alpha_L))**(1/(1-alpha_L))
 		l=np.linspace(sizemin,sizemax,256)
 		p=lambda l: 1./k*(l**(1-alpha_L) - sizemin**(1-alpha_L))
 		plt.subplot(2,1,1)
-		plt.xlim([1,40])
-		plt.hist(sizes,bins=100,normed=True)
+		plt.xlim([8,100])
+		plt.hist(sizes,bins=100,normed=False,alpha=0.6)
+		plt.yscale('log', nonposy='clip')
+		plt.xscale('log')
 		plt.ylabel(r'$\xi(L)$')
 		plt.subplot(2,1,2)
-		plt.xlim([1,40])
+		plt.xlim([5,50])
 		plt.plot(l,p(l),label=r'$\alpha_L=$'+str(alpha_L))
+		
 		plt.xlabel(r'$L $ [ pc ]')
 		plt.ylabel(r'$\mathcal{P}(<L)$')
 	plt.legend(loc='best')
 	plt.savefig('/home/peppe/pb2/figures/sizefunction.pdf')
+	plt.show()
+	pass 
+
+def plot_2powerlaw_size_function(s0,s1,s2):
+
+	alpha1=.8
+	spectral=[3.3,3.9]
+	for alpha2,col in zip(spectral,['b-','g-']):
+	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
+
+		k2=1./(  1./(alpha1 + 1.) *s1**(-alpha1-alpha2) *( s1**(1+alpha1 )- s0**(1+alpha1) ) \
+			+ 1./(1.- alpha2 )* (s2**(1-alpha2)- s1**(1-alpha2)))
+		k1=s1**(-alpha1-alpha2) * k2
+
+		X10	=	k1/(alpha1+1.)*(s1**(1+alpha1 )- s0**(1+alpha1))
+		X21	=	k2/(1.-alpha2)*(s2**(1-alpha2)- s1**(1-alpha2))
+
+		x=np.random.uniform(size=40000)
+		sizes=[]
+		for i in x:
+			if i<X10: 
+				sizes.append(((alpha1+1.)/k1 * i + (s0)**(1+alpha1))**(1/(1+alpha1)))
+			else :
+				sizes.append( ((1-alpha2)/k2 * (i-X10)  + (s1)**(1-alpha2))**(1/(1-alpha2)) )
+		l1=np.linspace(s0,s1,64)
+		l2=np.linspace(s1,s2,64)
+		p1=lambda l: k1/(1+alpha1)*(l**(1+alpha1) - s0**(1+alpha1))
+		p2=lambda l: k2/(1-alpha2)*(l**(1-alpha2) - s1**(1-alpha2)) + X10
+		plt.subplot(2,1,1)
+		plt.xlim([s0,100])
+		plt.hist(sizes,bins=70,normed=True,alpha=0.4)
+		plt.yscale('log', nonposy='clip')
+		plt.xscale('log')
+		plt.ylabel(r'$\xi(L)$')
+		plt.subplot(2,1,2)
+		plt.xlim([s0,s2])
+		plt.plot(l1,p1(l1),col,label=r'$\alpha_L=$'+str(alpha2) )
+		plt.plot(l2,p2(l2),col)	
+		plt.xlabel(r'$L $ [ pc ]')
+		plt.ylabel(r'$\mathcal{P}(<L)$')
+	plt.legend(loc='best')
+	plt.savefig('/home/peppe/pb2/figures/sizefunction_2powerlaw.pdf')
+	plt.show()
 	pass 
