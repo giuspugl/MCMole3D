@@ -357,6 +357,7 @@ class Cloud_Population(object):
 		self.d_sun=g["D_sun"][...]
 		self.long=g["Gal_longitude"][...]
 		self.lat=g["Gal_Latitude"][...]
+		self.healpix_vecs=g["Healpix_Vec"][...]
 		
 		self.cartesian_galactocentric = self.cartesianize_coordinates(coord_array)
 		cols=bash_colors()
