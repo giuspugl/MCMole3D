@@ -16,6 +16,7 @@ import astropy.coordinates  as coord
 class Cloud(object):
 	
 	def assign_sun_coord(self,d,latit,longit):
+
 		self.has_suncoord=True
 		self.X_sun=[d,latit,longit]
 		pass 
@@ -85,6 +86,10 @@ class Cloud_Population(object):
 	"""
 
 	def cartesianize_coordinates(self,array):
+		"""
+		convert arrays of cylindrical(spherical ) coordinates to cartesian ones. exploit astropy routines.
+
+		"""
 		return coord.Galactocentric(array)
 
 	def __call__(self): 
@@ -132,7 +137,9 @@ class Cloud_Population(object):
 				c.assign_sun_coord(d,latit,longit)
 	
 	def compute_healpix_vec(self):
-		#convert latitude and longitude in healpix mapping 
+		"""
+		convert galactic latitude and longitude positions  in healpix mapping quantinties: vec.  
+		"""
 		rtod=180./np.pi
 		b_h=np.pi/2. - self.lat
 		l_h=self.long
@@ -140,18 +147,27 @@ class Cloud_Population(object):
 		
 		return vec
 	def get_pop_emissivities_sizes(self):
+		"""
+		Looping into the clouds of this class it returns the emissivity and size of each cloud. 
+		"""
 		sizes,emiss=[],[]
 		for c in self.clouds:
 			sizes.append(c.L)
 			emiss.append(c.W)
 		return  emiss, sizes
 	def heliocentric_coordinates(self):
+		"""
+		convert Galactocentric coordinates to heliocentri ones
+		"""
 		g=self.cartesian_galactocentric.transform_to(coord.Galactic)
 		
 		self.d_sun=g.distance.kpc
 		self.lat=g.b.rad
 		self.long=g.l.rad
-	def initialize_cloud_population_from_output(self,filename): 
+	def initialize_cloud_population_from_output(self,filename):
+		"""
+		read from an hdf5 output file the cloud catalog and assign values  
+		""" 
 		self.clouds=[]
 		self.read_pop_fromhdf5(filename)
 
@@ -166,7 +182,10 @@ class Cloud_Population(object):
 			c=None
 		pass 
 	def plot_histogram_population(self,figname=None):
-		
+		"""
+		Makes histograms of all over the population of clouds to check the probability 
+		density functions of coordinates
+		"""
 		h,edges=np.histogram(self.r,bins=200,normed=True)
 		bins=np.array([(edges[i]+edges[i+1])/2. for i in range(len(h))])
 		area=np.array([(edges[i+1]-edges[i])*h[i] for i in range(len(h))])
@@ -259,6 +278,10 @@ class Cloud_Population(object):
 		plt.close()
 	
 	def plot_radial(self,X,ylabel,figname=None,color='b'): 
+		"""
+		Plot a quantity `X` which may variates across the Galactic radius `R_gal`. 
+		It can be the thickness or the emissivity profile 
+		"""
 		plt.plot(self.r,X,color+'-')
 		plt.xlabel(r'$R_{gal}\, \mathrm{[kpc]}$ ')
 		plt.ylabel(ylabel)
@@ -270,6 +293,10 @@ class Cloud_Population(object):
 		plt.close()
 
 	def plot_3d_population(self,figname=None):
+		"""
+		Makes density contour plots of all the cloud population
+		"""
+
 		from matplotlib import gridspec,colors
 		x0	=	self.cartesian_galactocentric.x.value
 		x1	=	self.cartesian_galactocentric.y.value
@@ -315,6 +342,9 @@ class Cloud_Population(object):
 			plt.savefig(figname)
 		plt.close()
 	def print_pop(self):
+		"""
+		Output on screen the whole MonteCarlo catalogue of molecular clouds
+		"""
 		cols=bash_colors()
 		print cols.header("###"*40)
 		print cols.blue(cols.bold(str(self.n)+" Clouds simulated assuming a "+self.model+" model\n"))
@@ -339,8 +369,33 @@ class Cloud_Population(object):
 			c.print_cloudinfo()
 
 		pass
+	def print_parameters(self):
+		"""
+		print the parameters used to the simulation
+
+		"""
+		typical_size=globals()['L0']
+		emissivity=globals()['emiss_params']
+
+		cols=bash_colors()
+		print cols.header("###"*20)
+		print cols.blue("Parameters  to MCMole3D")
+		print "---"*20
+		print cols.green("Model\t\t\t\t....\t"),cols.bold(self.model)
+		print cols.green("#clouds\t\t\t\t....\t"),cols.bold(self.n)
+		print cols.green("Molecular Ring [location,width]\t....\t"),cols.bold("%g,%g\t"%(self.R_params[0],self.R_params[1])),"kpc"
+		print cols.green("Central Midplane Thickness\t....\t"),cols.bold("%g\t"%(self.z_distr[0]*1000)),"pc"
+		print cols.green("Scale Radius Midplane Thickness\t....\t"),cols.bold("%g\t"%self.z_distr[1]),"kpc"
+		print cols.green("Amplitude Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[0]),"K km/s"
+		print cols.green("Scale Radius Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[1]),"kpc"
+		print cols.green("Cloud Typical size\t\t....\t"),cols.bold("%g\t"%typical_size),"pc"
+		print cols.header("###"*20)
+		pass
 
 	def read_pop_fromhdf5(self,filename):
+		"""
+		reading routine from an hdf5. 
+		"""
 		f=h5.File(filename,'r')
 		g=f["Cloud_Population"]
 		self.r=g["R"][...]
@@ -390,25 +445,13 @@ class Cloud_Population(object):
 		self.z_distr[0]/=(2.*np.sqrt(2.*np.log(2.)))
 		globals()['L0']=typical_size
 		globals()['emiss_params']=emissivity
-
-
-		cols=bash_colors()
-		print cols.header("###"*20)
-		print cols.blue("Parameters  to MCMole3D")
-		print "---"*20
-		print cols.green("Model\t\t\t\t....\t"),cols.bold(self.model)
-		print cols.green("#clouds\t\t\t\t....\t"),cols.bold(self.n)
-		print cols.green("Molecular Ring [location,width]\t....\t"),cols.bold("%g,%g\t"%(self.R_params[0],self.R_params[1])),"kpc"
-		print cols.green("Central Midplane Thickness\t....\t"),cols.bold("%g\t"%(self.z_distr[0]*1000)),"pc"
-		print cols.green("Scale Radius Midplane Thickness\t....\t"),cols.bold("%g\t"%self.z_distr[1]),"kpc"
-		print cols.green("Amplitude Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[0]),"K km/s"
-		print cols.green("Scale Radius Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[1]),"kpc"
-		print cols.green("Cloud Typical size\t\t....\t"),cols.bold("%g\t"%typical_size),"pc"
-		print cols.header("###"*20)
-		
 		pass 
 
 	def write2hdf5(self,filename): 
+		"""
+		Write onto an hfd5 file the whole catalogue
+
+		"""
 		W,L=self.get_pop_emissivities_sizes()
 		healpix_vecs=self.compute_healpix_vec()
 
@@ -475,6 +518,7 @@ class Collect_Clouds(Cloud_Population):
 		
 
 	def concatenate_arrays(self):
+		
 		self.r=np.concatenate([p.r for p in  self.Pops])
 		self.phi=np.concatenate([p.phi for p in  self.Pops])
 		self.d_sun=np.concatenate([p.d_sun for p in  self.Pops])
@@ -484,75 +528,3 @@ class Collect_Clouds(Cloud_Population):
 			self.theta=np.concatenate([p.theta for p in  self.Pops])
 		elif self.models[self.model]==2:
 			self.zeta=np.concatenate([p.zeta for p in  self.Pops])
-
-
-
-
-def plot_size_function(sizemin,sizemax):
-
-	for alpha_L in [3.9,3.3]:
-	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
-
-		k=(sizemax**(1-alpha_L)- sizemin**(1-alpha_L))
-		x=np.random.uniform(size=40000)
-		sizes=(k * x + (sizemin)**(1-alpha_L))**(1/(1-alpha_L))
-		l=np.linspace(sizemin,sizemax,256)
-		p=lambda l: 1./k*(l**(1-alpha_L) - sizemin**(1-alpha_L))
-		plt.subplot(2,1,1)
-		plt.xlim([8,100])
-		plt.hist(sizes,bins=100,normed=False,alpha=0.6)
-		plt.yscale('log', nonposy='clip')
-		plt.xscale('log')
-		plt.ylabel(r'$\xi(L)$')
-		plt.subplot(2,1,2)
-		plt.xlim([5,50])
-		plt.plot(l,p(l),label=r'$\alpha_L=$'+str(alpha_L))
-		
-		plt.xlabel(r'$L $ [ pc ]')
-		plt.ylabel(r'$\mathcal{P}(<L)$')
-	plt.legend(loc='best')
-	plt.savefig('/home/peppe/pb2/figures/sizefunction.pdf')
-	plt.show()
-	pass 
-
-def plot_2powerlaw_size_function(s0,s1,s2):
-
-	alpha1=.8
-	spectral=[3.3,3.9]
-	for alpha2,col in zip(spectral,['b-','g-']):
-	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
-
-		k2=1./(  1./(alpha1 + 1.) *s1**(-alpha1-alpha2) *( s1**(1+alpha1 )- s0**(1+alpha1) ) \
-			+ 1./(1.- alpha2 )* (s2**(1-alpha2)- s1**(1-alpha2)))
-		k1=s1**(-alpha1-alpha2) * k2
-
-		X10	=	k1/(alpha1+1.)*(s1**(1+alpha1 )- s0**(1+alpha1))
-		X21	=	k2/(1.-alpha2)*(s2**(1-alpha2)- s1**(1-alpha2))
-
-		x=np.random.uniform(size=40000)
-		sizes=[]
-		for i in x:
-			if i<X10: 
-				sizes.append(((alpha1+1.)/k1 * i + (s0)**(1+alpha1))**(1/(1+alpha1)))
-			else :
-				sizes.append( ((1-alpha2)/k2 * (i-X10)  + (s1)**(1-alpha2))**(1/(1-alpha2)) )
-		l1=np.linspace(s0,s1,64)
-		l2=np.linspace(s1,s2,64)
-		p1=lambda l: k1/(1+alpha1)*(l**(1+alpha1) - s0**(1+alpha1))
-		p2=lambda l: k2/(1-alpha2)*(l**(1-alpha2) - s1**(1-alpha2)) + X10
-		plt.subplot(2,1,1)
-		plt.xlim([s0,100])
-		plt.hist(sizes,bins=70,normed=True,alpha=0.4)
-		plt.yscale('log', nonposy='clip')
-		plt.xscale('log')
-		plt.ylabel(r'$\xi(L)$')
-		plt.subplot(2,1,2)
-		plt.xlim([s0,s2])
-		plt.plot(l1,p1(l1),col,label=r'$\alpha_L=$'+str(alpha2) )
-		plt.plot(l2,p2(l2),col)	
-		plt.xlabel(r'$L $ [ pc ]')
-		plt.ylabel(r'$\mathcal{P}(<L)$')
-	plt.legend(loc='best')
-	plt.savefig('/home/peppe/pb2/figures/sizefunction_2powerlaw.pdf')
-	plt.show()
-	pass 

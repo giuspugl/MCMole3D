@@ -3,19 +3,19 @@ import h5py as h5
 import numpy as np 
 
 
-def gaussian_apodization(x,d,p=3):
+def gaussian_apodization(x,d):
 	"""
 	smooth the emissivity of the cloud with a gaussian , centered in the center of the cloud
 	and with sigma defined in such a way that: 
 
 	.. math:: 
 	
-		\epsilon(d) = 10 ^{-p} \epsilon_0
+		d = 6 \sigma 
 
-	where ``d`` is the border of the cloud, i.e. the radius of the cloud, ``p`` is the parameter to set 
-	the width of the cloud, sigma as expected is related to ``p``. the higher is p
+	where ``d`` is the border of the cloud, i.e. the radius of the cloud. 
 	"""
-	sigma	=	d/np.sqrt(2.*p*np.log(10))
+#	sigma	=	d/np.sqrt(2.*p*np.log(10))
+	sigma	=	d / 6.
 	y		= 	(x/(np.sqrt(2)*sigma))**2
 	
 	return np.exp(-y)
@@ -52,7 +52,9 @@ def distance_from_cloud_center(theta,phi,theta_c,phi_c):
 
 
 
-def do_healpy_map(Pop,nside,fname,apodization='cos'):
+def do_healpy_map(Pop,nside,fname,apodization='gaussian'):
+
+
 	N=Pop.n
 	mapcloud=np.zeros(hp.nside2npix(nside))
 	sizekpc=Pop.L/1.e3
