@@ -5,7 +5,7 @@ import matplotlib.ticker as mtick
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import numpy as np 
 import sys
-from scipy.stats import norm,gaussian_kde
+from scipy.stats import norm,gaussian_kde,uniform
 from  scipy import histogram2d
 from utilities.utilities_functions import bash_colors
 import astropy.units  as u
@@ -96,10 +96,10 @@ class Cloud_Population(object):
 
 		self.clouds=[]
 
-		self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
 		a=np.random.uniform(low=0.,high=1.,size=self.n)
 		self.phi=2.*np.pi*a
 		if self.model=='Spherical':
+			self.r= norm.rvs(loc=15.,scale=.5,size=self.n) 
 			v=np.random.uniform(low=0.,high=1.,size=self.n)
 			self.theta=np.arccos(2.*v-1.)
 
@@ -115,6 +115,7 @@ class Cloud_Population(object):
 				c.assign_sun_coord(d,latit,longit)
 				self.clouds.append(c)
 		elif self.model=='Axisymmetric':
+			self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
 			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
 			# for reference see fig.6 of Heyer and Dame, 2015
 			sigma_z0=self.z_distr[0]
@@ -135,7 +136,12 @@ class Cloud_Population(object):
 
 			for c,d,latit,longit in zip(self.clouds,self.d_sun,self.lat,self.long):
 				c.assign_sun_coord(d,latit,longit)
-	
+		
+		
+		
+		self.L=np.array(self.sizes)
+
+
 	def compute_healpix_vec(self):
 		"""
 		convert galactic latitude and longitude positions  in healpix mapping quantinties: vec.  
