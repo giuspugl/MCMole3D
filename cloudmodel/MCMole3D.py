@@ -45,8 +45,8 @@ class Cloud(object):
 		If L < 10pc we assume a positive power-law with alpha1=0.8 . 
 
 		"""
-		s1=globals()['L0']
-		s0,s2=0.3,50.
+		s1=globals()['L1']
+		s0,s2=globals()['L0'],globals()['L2']
 		alpha1=0.8
 
 		if R<8.3: 
@@ -96,10 +96,10 @@ class Cloud_Population(object):
 
 		self.clouds=[]
 
+		self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
 		a=np.random.uniform(low=0.,high=1.,size=self.n)
 		self.phi=2.*np.pi*a
 		if self.model=='Spherical':
-			self.r= norm.rvs(loc=15.,scale=.5,size=self.n) 
 			v=np.random.uniform(low=0.,high=1.,size=self.n)
 			self.theta=np.arccos(2.*v-1.)
 
@@ -109,13 +109,12 @@ class Cloud_Population(object):
 
 			for i,x,p,t,d,latit,longit in zip(np.arange(self.n),self.r,self.phi,self.theta,self.d_sun,self.lat,self.long): 
 				if x<=0.: 
-					self.r[i]=0.
+					self.r[i]=np.random.uniform(low=0.,high=2.,size=1)
 					x=0.
 				c=Cloud(i,x,p,t,size=None,em=None)
 				c.assign_sun_coord(d,latit,longit)
 				self.clouds.append(c)
 		elif self.model=='Axisymmetric':
-			self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
 			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
 			# for reference see fig.6 of Heyer and Dame, 2015
 			sigma_z0=self.z_distr[0]
@@ -125,7 +124,8 @@ class Cloud_Population(object):
 			self.zeta=self.phi*0.
 			for i,x,p in zip(np.arange(self.n),self.r,self.phi): 
 				if x<=0.: 
-					self.r[i]=0.
+					#self.r[i]=0.
+					self.r[i]=np.random.uniform(low=0.,high=2.,size=1)
 					x=0.
 				self.zeta[i]=np.random.normal(loc=0.,scale=sigma_z(x) )
 				self.clouds.append(Cloud(i,x,p,self.zeta[i],size=None,em=None))
@@ -380,7 +380,8 @@ class Cloud_Population(object):
 		print the parameters used to the simulation
 
 		"""
-		typical_size=globals()['L0']
+		typical_size=globals()['L1']
+		minsize,maxsize=globals()['L0'],globals()['L2']
 		emissivity=globals()['emiss_params']
 
 		cols=bash_colors()
@@ -395,6 +396,7 @@ class Cloud_Population(object):
 		print cols.green("Amplitude Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[0]),"K km/s"
 		print cols.green("Scale Radius Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[1]),"kpc"
 		print cols.green("Cloud Typical size\t\t....\t"),cols.bold("%g\t"%typical_size),"pc"
+		print cols.green("Cloud size [min,max]\t\t....\t"),cols.bold("%g,%g\t"%(minsize,maxsize)),"pc"
 		print cols.header("###"*20)
 		pass
 
@@ -425,7 +427,7 @@ class Cloud_Population(object):
 		f.close()
 		print cols.bold("////// \t read from "+filename+"\t ////////")
 		pass
-	def set_parameters(self,radial_distr=[5.3,2.5],emissivity=[60,3.59236], thickness_distr=[0.1,9.],typical_size=10.):
+	def set_parameters(self,radial_distr=[5.3,2.5],emissivity=[60,3.59236], thickness_distr=[0.1,9.],typical_size=10.,size_range=[0.3,50]):
 		"""
 		Set key-parameters to the population of clouds. 
 
@@ -449,7 +451,8 @@ class Cloud_Population(object):
 		self.R_params[1]/=np.sqrt(2*np.log(2))
 		self.z_distr=list(thickness_distr)
 		self.z_distr[0]/=(2.*np.sqrt(2.*np.log(2.)))
-		globals()['L0']=typical_size
+		globals()['L1']=typical_size
+		globals()['L0'],globals()['L2']=size_range
 		globals()['emiss_params']=emissivity
 		pass 
 
