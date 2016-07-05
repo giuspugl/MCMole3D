@@ -3,24 +3,23 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-import numpy as np 
+import numpy as np
 import sys
 from scipy.stats import norm,gaussian_kde,uniform
 from  scipy import histogram2d
-from utilities.utilities_functions import bash_colors
 import astropy.units  as u
 import astropy.coordinates  as coord
 
 
 
 class Cloud(object):
-	
+
 	def assign_sun_coord(self,d,latit,longit):
 
 		self.has_suncoord=True
 		self.X_sun=[d,latit,longit]
-		pass 
-	def emissivity(self,R): 
+		pass
+	def emissivity(self,R):
 		"""
 		replicating the profile in Heyer Dame 2015
 		"""
@@ -37,23 +36,23 @@ class Cloud(object):
 		pass
 	def size_function(self,R):
 		"""
-		Compute the size in a very wide range of cloud sizes  [0.1,50]pc, from random numbers following 
+		Compute the size in a very wide range of cloud sizes  [0.1,50]pc, from random numbers following
 		the probability distribution function coming from the cloud size function.
-		We split it  in two parts : L>10pc  a decreasing power-law distribution has been asssumed with 
-		spectral index alpha_L(see Heyer Dame 2015). In the outer Galaxy a lower spectral index has been measured ~3.3, 
+		We split it  in two parts : L>10pc  a decreasing power-law distribution has been asssumed with
+		spectral index alpha_L(see Heyer Dame 2015). In the outer Galaxy a lower spectral index has been measured ~3.3,
 		whereas in the inner Galaxy a steeper one 3.9.
-		If L < 10pc we assume a positive power-law with alpha1=0.8 . 
+		If L < 10pc we assume a positive power-law with alpha1=0.8 .
 
 		"""
 		s1=globals()['L1']
 		s0,s2=globals()['L0'],globals()['L2']
 		alpha1=0.8
 
-		if R<8.3: 
+		if R<8.3:
 			alpha2=3.9
 		else :
 			alpha2=3.3
-		
+
 		#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
 		k2=1./(  1./(alpha1 + 1.) *s1**(-alpha1-alpha2) *( s1**(1+alpha1 )- s0**(1+alpha1) ) \
 			+ 1./(1.- alpha2 )* (s2**(1-alpha2)- s1**(1-alpha2)))
@@ -62,17 +61,17 @@ class Cloud(object):
 		X21	=	k2/(1.-alpha2)*(s2**(1-alpha2)- s1**(1-alpha2))
 
 		x=np.random.uniform()
-		if x<X10: 
+		if x<X10:
 			return ((alpha1+1.)/k1 * x + (s0)**(1+alpha1))**(1/(1+alpha1))
 		else :
-			return  ((1-alpha2)/k2 * (x-X10)  + (s1)**(1-alpha2))**(1/(1-alpha2)) 
-	
+			return  ((1-alpha2)/k2 * (x-X10)  + (s1)**(1-alpha2))**(1/(1-alpha2))
+
 	def __init__(self,idcloud,x1,x2,x3,size=None,em=None):
 		self.id=idcloud
 		self.X=[x1,x2,x3]
 		self.has_suncoord=False
 
-		if (size is None) or (em is  None): 
+		if (size is None) or (em is  None):
 			self.W=self.emissivity(x1)
 			self.L=self.size_function(x1)
 		#	self.L=norm.rvs(loc=10., scale=30., size=1)
@@ -81,7 +80,7 @@ class Cloud(object):
 			self.W=em
 
 class Cloud_Population(object):
-	""" 
+	"""
 	class w/ a list of `Clouds` objects
 	"""
 
@@ -92,7 +91,7 @@ class Cloud_Population(object):
 		"""
 		return coord.Galactocentric(array)
 
-	def __call__(self): 
+	def __call__(self):
 
 		self.clouds=[]
 
@@ -107,8 +106,8 @@ class Cloud_Population(object):
 			self.cartesian_galactocentric= self.cartesianize_coordinates(coord_array)
 			self.heliocentric_coordinates()
 
-			for i,x,p,t,d,latit,longit in zip(np.arange(self.n),self.r,self.phi,self.theta,self.d_sun,self.lat,self.long): 
-				if x<=0.: 
+			for i,x,p,t,d,latit,longit in zip(np.arange(self.n),self.r,self.phi,self.theta,self.d_sun,self.lat,self.long):
+				if x<=0.:
 					self.r[i]=np.random.uniform(low=0.,high=2.,size=1)
 					x=0.
 				c=Cloud(i,x,p,t,size=None,em=None)
@@ -122,8 +121,8 @@ class Cloud_Population(object):
 
 			sigma_z=lambda R: sigma_z0*np.cosh((R/R_z0))
 			self.zeta=self.phi*0.
-			for i,x,p in zip(np.arange(self.n),self.r,self.phi): 
-				if x<=0.: 
+			for i,x,p in zip(np.arange(self.n),self.r,self.phi):
+				if x<=0.:
 					#self.r[i]=0.
 					self.r[i]=np.random.uniform(low=0.,high=2.,size=1)
 					x=0.
@@ -136,25 +135,25 @@ class Cloud_Population(object):
 
 			for c,d,latit,longit in zip(self.clouds,self.d_sun,self.lat,self.long):
 				c.assign_sun_coord(d,latit,longit)
-		
-		
-		
+
+
+
 		self.L=np.array(self.sizes)
 
 
 	def compute_healpix_vec(self):
 		"""
-		convert galactic latitude and longitude positions  in healpix mapping quantinties: vec.  
+		convert galactic latitude and longitude positions  in healpix mapping quantinties: vec.
 		"""
 		rtod=180./np.pi
 		b_h=np.pi/2. - self.lat
 		l_h=self.long
 		vec=hp.ang2vec(b_h,l_h)
-		
+
 		return vec
 	def get_pop_emissivities_sizes(self):
 		"""
-		Looping into the clouds of this class it returns the emissivity and size of each cloud. 
+		Looping into the clouds of this class it returns the emissivity and size of each cloud.
 		"""
 		sizes,emiss=[],[]
 		for c in self.clouds:
@@ -166,14 +165,14 @@ class Cloud_Population(object):
 		convert Galactocentric coordinates to heliocentri ones
 		"""
 		g=self.cartesian_galactocentric.transform_to(coord.Galactic)
-		
+
 		self.d_sun=g.distance.kpc
 		self.lat=g.b.rad
 		self.long=g.l.rad
 	def initialize_cloud_population_from_output(self,filename):
 		"""
-		read from an hdf5 output file the cloud catalog and assign values  
-		""" 
+		read from an hdf5 output file the cloud catalog and assign values
+		"""
 		self.clouds=[]
 		self.read_pop_fromhdf5(filename)
 
@@ -181,22 +180,22 @@ class Cloud_Population(object):
 			zipped=zip(np.arange(self.n),self.r,self.phi,self.theta,self.L,self.W,self.d_sun,self.lat,self.long)
 		elif self.models[self.model]==2:
 			zipped=zip(np.arange(self.n),self.r,self.phi,self.zeta,self.L,self.W,self.d_sun,self.lat,self.long)
-		for i,r,p,t,l,w,d,latit,longit in zipped: 
+		for i,r,p,t,l,w,d,latit,longit in zipped:
 			c=Cloud(i,r,p,t,size=l,em=w)
 			c.assign_sun_coord(d,latit,longit)
 			self.clouds.append(c)
 			c=None
-		pass 
+		pass
 	def plot_histogram_population(self,figname=None):
 		"""
-		Makes histograms of all over the population of clouds to check the probability 
+		Makes histograms of all over the population of clouds to check the probability
 		density functions of coordinates
 		"""
 		h,edges=np.histogram(self.r,bins=200,normed=True)
 		bins=np.array([(edges[i]+edges[i+1])/2. for i in range(len(h))])
 		area=np.array([(edges[i+1]-edges[i])*h[i] for i in range(len(h))])
 		fig=plt.figure(figsize=(12,9))
-		
+
 		#plt.subplot(2,3,1)
 		plt.subplot(2,2,1)
 		h,bins,p=plt.hist(self.r,200,normed=0,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
@@ -208,7 +207,7 @@ class Cloud_Population(object):
 		ax.xaxis.set_major_locator(xmajorLocator)
 		ax.xaxis.set_major_formatter(xmajorFormatter)
 		ax.xaxis.set_minor_locator(xminorLocator)
-		
+
 		ymajorFormatter = FormatStrFormatter('%1.1e')
 		ax.yaxis.set_major_formatter(ymajorFormatter)
 		plt.xlabel(r'$R_{gal}\,$ [kpc]')
@@ -233,7 +232,7 @@ class Cloud_Population(object):
 			ax.xaxis.set_major_locator(xmajorLocator)
 			ax.xaxis.set_major_formatter(xmajorFormatter)
 			ax.xaxis.set_minor_locator(xminorLocator)
-			
+
 			ymajorFormatter = FormatStrFormatter('%1.1e')
 			ax.yaxis.set_major_formatter(ymajorFormatter)
 
@@ -249,17 +248,17 @@ class Cloud_Population(object):
 		ax.xaxis.set_major_locator(xmajorLocator)
 		ax.xaxis.set_major_formatter(xmajorFormatter)
 		ax.xaxis.set_minor_locator(xminorLocator)
-			
+
 		ymajorFormatter = FormatStrFormatter('%1.1e')
 		ax.yaxis.set_major_formatter(ymajorFormatter)
 		plt.ylabel('N per bin')
-		
-		
+
+
 		plt.subplot(2,2,2)
 		m=np.where(self.long >=np.pi)[0]
-		l=self.long*0. 
-		l=self.long 
-		l[m]=self.long[m] - 2*np.pi 
+		l=self.long*0.
+		l=self.long
+		l[m]=self.long[m] - 2*np.pi
 		plt.hist(l*radtodeg,bins=np.linspace(-180,180,72),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
 		ax = plt.gca()
 		xmajorLocator = MultipleLocator(100)
@@ -268,25 +267,25 @@ class Cloud_Population(object):
 		ax.xaxis.set_major_locator(xmajorLocator)
 		ax.xaxis.set_major_formatter(xmajorFormatter)
 		ax.xaxis.set_minor_locator(xminorLocator)
-			
+
 		ymajorFormatter = FormatStrFormatter('%1.1e')
 		ax.yaxis.set_major_formatter(ymajorFormatter)
-		
+
 		plt.xlabel('Galactic Longitude [deg] ')
-		
+
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
 		plt.xlim([180,-180])
-		
+
 		if figname is None:
 			plt.show()
 		else:
 			plt.savefig(figname)
 		plt.close()
-	
-	def plot_radial(self,X,ylabel,figname=None,color='b'): 
+
+	def plot_radial(self,X,ylabel,figname=None,color='b'):
 		"""
-		Plot a quantity `X` which may variates across the Galactic radius `R_gal`. 
-		It can be the thickness or the emissivity profile 
+		Plot a quantity `X` which may variates across the Galactic radius `R_gal`.
+		It can be the thickness or the emissivity profile
 		"""
 		plt.plot(self.r,X,color+'-')
 		plt.xlabel(r'$R_{gal}\, \mathrm{[kpc]}$ ')
@@ -311,15 +310,15 @@ class Cloud_Population(object):
 		c=1
 		fig=plt.figure(figsize=(15,15))
 		gs  = gridspec.GridSpec(3, 1 )#width_ratios=[1.5, 2,1.5],height_ratios=[1.5,2,1.5])
-		
-		for a in planes.keys(): 
+
+		for a in planes.keys():
 			x,y=planes[a]
 			a1,a2=a.split("-",2)
 
 			xyrange=[[min(x),max(x)],[min(y),max(y)]]
 			nybins,nxbins=50,50
 			bins=[nybins,nxbins]
-			thresh=2#density threshold 
+			thresh=2#density threshold
 			hh, locx, locy = histogram2d(x, y, range=xyrange, bins=[nybins,nxbins])
 			posx = np.digitize(x, locx)
 			posy = np.digitize(y, locy)
@@ -329,12 +328,12 @@ class Cloud_Population(object):
 			ydat1 = y[ind][hhsub < thresh]
 			hh[hh < thresh] = np.nan # fill the areas with low density by NaNs
 			ax=plt.subplot(gs[c-1])
-		
+
 			ax.set_xlabel(a1+' [kpc]')
 			ax.set_ylabel(a2+' [kpc]')
 			if a2=='z' and self.model=='Axisymmetric':
 				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=np.array(xyrange).flatten(),interpolation='gaussian', origin='upper')
-				ax.set_yticks((-.5,0,.5))		
+				ax.set_yticks((-.5,0,.5))
 			else:
 				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=np.array(xyrange).flatten(),interpolation='gaussian', origin='upper')
 				ax.plot(xdat1, ydat1, '.',color='darkblue')
@@ -351,6 +350,8 @@ class Cloud_Population(object):
 		"""
 		Output on screen the whole MonteCarlo catalogue of molecular clouds
 		"""
+		from utilities.utilities_functions import bash_colors
+
 		cols=bash_colors()
 		print cols.header("###"*40)
 		print cols.blue(cols.bold(str(self.n)+" Clouds simulated assuming a "+self.model+" model\n"))
@@ -383,6 +384,7 @@ class Cloud_Population(object):
 		typical_size=globals()['L1']
 		minsize,maxsize=globals()['L0'],globals()['L2']
 		emissivity=globals()['emiss_params']
+		from utilities.utilities_functions import bash_colors
 
 		cols=bash_colors()
 		print cols.header("###"*20)
@@ -402,7 +404,7 @@ class Cloud_Population(object):
 
 	def read_pop_fromhdf5(self,filename):
 		"""
-		reading routine from an hdf5. 
+		reading routine from an hdf5.
 		"""
 		f=h5.File(filename,'r')
 		g=f["Cloud_Population"]
@@ -414,14 +416,14 @@ class Cloud_Population(object):
 		if self.models[self.model]==1:
 			self.theta=g["Theta"][...]
 			coord_array=coord.PhysicsSphericalRepresentation(self.phi*u.rad,self.theta * u.rad,self.r*u.kpc )
-		elif self.models[self.model]==2: 
+		elif self.models[self.model]==2:
 			self.zeta=g["Z"][...]
 			coord_array=coord.CylindricalRepresentation(self.r*u.kpc,self.phi*u.rad,self.zeta*u.kpc )
 		self.d_sun=g["D_sun"][...]
 		self.long=g["Gal_longitude"][...]
 		self.lat=g["Gal_Latitude"][...]
 		self.healpix_vecs=g["Healpix_Vec"][...]
-		
+
 		self.cartesian_galactocentric = self.cartesianize_coordinates(coord_array)
 		cols=bash_colors()
 		f.close()
@@ -429,21 +431,21 @@ class Cloud_Population(object):
 		pass
 	def set_parameters(self,radial_distr=[5.3,2.5],emissivity=[60,3.59236], thickness_distr=[0.1,9.],typical_size=10.,size_range=[0.3,50]):
 		"""
-		Set key-parameters to the population of clouds. 
+		Set key-parameters to the population of clouds.
 
 		- ``radial_distr``:{list}
-			:math:`(\mu_R,FWHM_R)` parameters to the  Galactic radius  distribution of the clouds, assumed Gaussian.  
+			:math:`(\mu_R,FWHM_R)` parameters to the  Galactic radius  distribution of the clouds, assumed Gaussian.
 			Default  :math:`\mu_R= 5.3 \, ,\sigma_R=FWHM_R/\sqrt(2 \ln 2)= 2.12` kpc.
 		- ``thickness_distr``:{list}
-			:math:`(\FWHM_{z,0}, R_{z,0})` parameters to the vertical thickness of the Galactic plane 
+			:math:`(\FWHM_{z,0}, R_{z,0})` parameters to the vertical thickness of the Galactic plane
 			increasing in the outer Galaxy with :math:`\sigma(z)=sigma_z(0) *cosh(R/R_{z,0})`.
-			Default  :math:`\sigma_{z,0}=0.1 \, , R_{z,0}=9` kpc. 
+			Default  :math:`\sigma_{z,0}=0.1 \, , R_{z,0}=9` kpc.
 		- ``emissivity``:{list}
 			Parameters to the emissivity radial profile, :math:`\epsilon(R)= \epsilon_0 \exp(- R/R_0)`.
-			Default Heyer and Dame values : :math:`\epsilon_0=60\, K km/s,\, R_0=3.6 \, kpc`.  
+			Default Heyer and Dame values : :math:`\epsilon_0=60\, K km/s,\, R_0=3.6 \, kpc`.
 		- ``typical_size``: {scalar}
-			Typical size of molecular clouds where we observe the peak in the size distribution function. 
-			Default :math:`L_0=10` pc. 
+			Typical size of molecular clouds where we observe the peak in the size distribution function.
+			Default :math:`L_0=10` pc.
 		"""
 
 
@@ -454,9 +456,9 @@ class Cloud_Population(object):
 		globals()['L1']=typical_size
 		globals()['L0'],globals()['L2']=size_range
 		globals()['emiss_params']=emissivity
-		pass 
+		pass
 
-	def write2hdf5(self,filename): 
+	def write2hdf5(self,filename):
 		"""
 		Write onto an hfd5 file the whole catalogue
 
@@ -482,52 +484,52 @@ class Cloud_Population(object):
 
 		f.close()
 		pass
- 
+
 	def __init__(self, N_clouds,model):
 		self.model=model
 		self.models={'Spherical':1,'Axisymmetric':2}
 		if self.models[model]==1:
 			self.r,self.theta,self.phi=0,0,0
-		elif self.models[model]==2: 
+		elif self.models[model]==2:
 			self.r,self.zeta,self.phi=0,0,0
 		self.n= N_clouds
 		self.d_sun,self.lat,self.long =None,None,None
 
 
-	@property 
+	@property
 	def emissivity(self):
 		return self.get_pop_emissivities_sizes()[0]
-	@property 
+	@property
 	def sizes(self):
 		return self.get_pop_emissivities_sizes()[1]
 
-		
+
 class Collect_Clouds(Cloud_Population):
 	"""
 	List of `Cloud_population` classes . Read from output
 	"""
-	
+
 	def __init__(self, N_pops,model,Ncl=4000,filestring=None):
-		
+
 		super(Collect_Clouds,self).__init__(Ncl,model)
 		self.Pops=[]
 		#compute the populations
-		for i in xrange(N_pops): 
+		for i in xrange(N_pops):
 			pop=Cloud_Population(self.n,self.model)
-			if filestring is None: 
+			if filestring is None:
 				pop()
 			else:
 				fname=filestring+'_'+self.model+'_'+str(i)+'.hdf5'
 				pop.initialize_cloud_population_from_output(fname)
-			
+
 			self.Pops.append(pop)
 			pop=None
 		self.concatenate_arrays()
 
-		
+
 
 	def concatenate_arrays(self):
-		
+
 		self.r=np.concatenate([p.r for p in  self.Pops])
 		self.phi=np.concatenate([p.phi for p in  self.Pops])
 		self.d_sun=np.concatenate([p.d_sun for p in  self.Pops])
