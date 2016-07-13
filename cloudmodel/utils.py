@@ -1,7 +1,11 @@
 import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
-
+from scipy.stats import norm
+def deg2rad(angle):
+	return angle*np.pi/180.
+def rad2deg(angle):
+	return angle*180./np.pi
 
 def plot_size_function(sizemin,sizemax):
 
@@ -78,30 +82,32 @@ def pixelsize(nside,arcmin=True):
 	else :
 		return np.sqrt(4.*np.pi  /hp.nside2npix(nside))
 
-
-
-def plot_intensity_integrals(obs_I,mod_I):
+def plot_intensity_integrals(obs_I,mod_I,fname=None):
 	nbins_long=len(obs_I)
-	deg2rad=np.pi/180.
 
 	nsteps_long=nbins_long+1
 	long_edges=np.linspace(0.,2*np.pi,num=nsteps_long)
 	long_centr=[.5*(long_edges[i]+ long_edges[i+1]) for i in xrange(nbins_long)]
 
-	long_deg=np.array(long_centr)/deg2rad
-	longi=np.concatenate([long_deg[nbins_long/2:nbins_long]-180,long_deg[0:nbins_long/2]+180])
+	long_deg=np.array(long_centr)*rad2deg(1.)
+	longi=np.concatenate([long_deg[nbins_long/2:nbins_long]-360,long_deg[0:nbins_long/2]])
 	ob=np.concatenate([obs_I[nbins_long/2:nbins_long],obs_I[0:nbins_long/2]])
 	mod=np.concatenate([mod_I[nbins_long/2:nbins_long],mod_I[0:nbins_long/2]])
 
 	plt.plot(longi,mod,'--',label=r'$I^{model}(\ell)$')
 	plt.plot(longi,ob,label=r'$I^{observ}(\ell)$')
-
+	plt.yscale('log')
+	plt.xlim([-180,180])
+	plt.ylim([1.e-1,3.e3])
 	plt.ylabel(r'$I(\ell)$ K km/s')
 	plt.xlabel('Galactic Longitude  ')
 	plt.legend(loc='best')
-	plt.show()
+	if fname is None:
+		plt.show()
+	else :
+		plt.savefig(fname)
 
-def integrate_intensity_map(Imap,nside,latmin=-2,latmax=+2. ,nsteps_long=500,rad_units=False,planck_map=False):
+def integrate_intensity_map(Imap,nside,latmin=-2,latmax=2. ,nsteps_long=500,rad_units=False,planck_map=False):
 	"""
 	Compute the integral of the intensity map along latitude and longitude; to compare observed
 	intensity map and the model one.
@@ -115,10 +121,10 @@ def integrate_intensity_map(Imap,nside,latmin=-2,latmax=+2. ,nsteps_long=500,rad
 		arr=np.ma.masked_equal(Imap,hp.UNSEEN)
 		Imap[arr.mask]=0.
 
-	deg2rad=np.pi/180.
+
 	if not rad_units:
-		latmin=np.pi/2.+(latmin*deg2rad)
-		latmax=np.pi/2.+(latmax*deg2rad)
+		latmin=np.pi/2.+(deg2rad(latmin))
+		latmax=np.pi/2.+(deg2rad(latmax))
 
 	nbins_long=nsteps_long-1
 	long_edges=np.linspace(0.,2*np.pi,num=nsteps_long)
@@ -136,3 +142,34 @@ def integrate_intensity_map(Imap,nside,latmin=-2,latmax=+2. ,nsteps_long=500,rad
 	I_l=[sum(Imap[l])*delta_b for l in listpix ]
 	Itot= sum(I_l)*delta_l
 	return Itot,I_l
+
+def log_spiral_radial_distribution(phi,rbar,phi_bar):
+	"""
+	values of pitch angle from Vallee' 1505.01202 i=13 deg
+	"""
+	pitch=deg2rad(-15.0)
+	pitch2=deg2rad(-13.)
+
+	Rbar=rbar
+	arm0=lambda theta: Rbar*np.exp((theta-np.pi)*np.tan(pitch))#**1.5
+	arm1=lambda theta: Rbar*np.exp((theta-2*np.pi)*np.tan(pitch2))#**1.5
+	arr=np.ma.masked_greater_equal(phi,np.pi+phi_bar)
+	less_then_pi=np.logical_not(arr.mask)
+	sigma=1.2
+	r=phi*0.
+	for i in xrange(len(phi)):
+		if arr.mask[i]:
+			func=arm1
+		else:
+			func = arm0
+		r[i]=norm.rvs(loc=func(phi[i]),scale=sigma,size=1)
+
+
+	#ax=plt.subplot(111,projection='polar')
+	#plt.plot(phi,r,'.')
+	#plt.plot(phi[less_then_pi],arm0(phi[less_then_pi]),'.')
+	#plt.plot(phi[arr.mask],arm1(phi[arr.mask]),'.')
+
+	#plt.show()
+
+	return r

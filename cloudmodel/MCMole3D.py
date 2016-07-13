@@ -9,7 +9,7 @@ from scipy.stats import norm,gaussian_kde,uniform
 from  scipy import histogram2d
 import astropy.units  as u
 import astropy.coordinates  as coord
-
+from utils import log_spiral_radial_distribution
 
 
 class Cloud(object):
@@ -95,10 +95,11 @@ class Cloud_Population(object):
 
 		self.clouds=[]
 
-		self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
 		a=np.random.uniform(low=0.,high=1.,size=self.n)
 		self.phi=2.*np.pi*a
 		if self.model=='Spherical':
+			self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
+
 			v=np.random.uniform(low=0.,high=1.,size=self.n)
 			self.theta=np.arccos(2.*v-1.)
 
@@ -108,12 +109,27 @@ class Cloud_Population(object):
 
 			for i,x,p,t,d,latit,longit in zip(np.arange(self.n),self.r,self.phi,self.theta,self.d_sun,self.lat,self.long):
 				if x<=0.:
-					self.r[i]=np.random.uniform(low=0.,high=2.,size=1)
-					x=0.
+					self.r[i]=np.random.uniform(low=0.,high=1.,size=1)
+					x=self.r[i]
 				c=Cloud(i,x,p,t,size=None,em=None)
 				c.assign_sun_coord(d,latit,longit)
 				self.clouds.append(c)
-		elif self.model=='Axisymmetric':
+		else:
+			self.r=self.phi*0.
+			rbar=self.R_params[2]
+
+			if self.model=='Axisymmetric':
+				self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
+			elif 	self.model=='LogSpiral':
+				#the bar is assumed axisymmetric and with an inclination angle phi0~25 deg as
+				#it has been measured by  Fux et al. 1999
+				from utils import deg2rad
+				phi_0=deg2rad(25.)
+				self.phi+=phi_0
+				self.r[0:self.n/10]=norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n/10)
+				#np.random.uniform(low=0.,high=8.,size=self.n/4)
+
+				self.r[self.n/10:self.n]=log_spiral_radial_distribution(self.phi[self.n/10:self.n],rbar,phi_0)
 			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
 			# for reference see fig.6 of Heyer and Dame, 2015
 			sigma_z0=self.z_distr[0]
@@ -122,10 +138,9 @@ class Cloud_Population(object):
 			sigma_z=lambda R: sigma_z0*np.cosh((R/R_z0))
 			self.zeta=self.phi*0.
 			for i,x,p in zip(np.arange(self.n),self.r,self.phi):
-				if x<=0.:
-					#self.r[i]=0.
-					self.r[i]=np.random.uniform(low=0.,high=2.,size=1)
-					x=0.
+				if x<rbar:
+					self.r[i]=np.random.normal(loc=0.,scale=rbar,size=1)
+					x=self.r[i]
 				self.zeta[i]=np.random.normal(loc=0.,scale=sigma_z(x) )
 				self.clouds.append(Cloud(i,x,p,self.zeta[i],size=None,em=None))
 
@@ -178,7 +193,7 @@ class Cloud_Population(object):
 
 		if self.models[self.model]==1:
 			zipped=zip(np.arange(self.n),self.r,self.phi,self.theta,self.L,self.W,self.d_sun,self.lat,self.long)
-		elif self.models[self.model]==2:
+		elif self.models[self.model]>=2:
 			zipped=zip(np.arange(self.n),self.r,self.phi,self.zeta,self.L,self.W,self.d_sun,self.lat,self.long)
 		for i,r,p,t,l,w,d,latit,longit in zipped:
 			c=Cloud(i,r,p,t,size=l,em=w)
@@ -219,7 +234,7 @@ class Cloud_Population(object):
 		if self.model=='Spherical':
 			plt.hist(np.cos(self.theta),bins=np.linspace(-1.,1.,5),histtype='stepfilled',alpha=0.3)
 			plt.xlabel(r'$\cos(\theta )\, $ ')
-		elif self.model=='Axisymmetric':
+		else:
 			plt.hist(self.zeta*1.e3,80,histtype='stepfilled',alpha=0.3,label='Bin = 5 pc')
 			plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
 			plt.xlabel('Vertical position [pc] ')
@@ -394,6 +409,7 @@ class Cloud_Population(object):
 		print cols.green("#clouds\t\t\t\t....\t"),cols.bold(self.n)
 		print cols.green("Molecular Ring [location,width]\t....\t"),cols.bold("%g,%g\t"%(self.R_params[0],self.R_params[1])),"kpc"
 		print cols.green("Central Midplane Thickness\t....\t"),cols.bold("%g\t"%(self.z_distr[0]*1000)),"pc"
+		print cols.green("Radius of the Galactic Bar \t....\t"),cols.bold("%g\t"%(self.R_params[2])),"kpc"
 		print cols.green("Scale Radius Midplane Thickness\t....\t"),cols.bold("%g\t"%self.z_distr[1]),"kpc"
 		print cols.green("Amplitude Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[0]),"K km/s"
 		print cols.green("Scale Radius Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[1]),"kpc"
@@ -416,7 +432,7 @@ class Cloud_Population(object):
 		if self.models[self.model]==1:
 			self.theta=g["Theta"][...]
 			coord_array=coord.PhysicsSphericalRepresentation(self.phi*u.rad,self.theta * u.rad,self.r*u.kpc )
-		elif self.models[self.model]==2:
+		elif self.models[self.model]>=2:
 			self.zeta=g["Z"][...]
 			coord_array=coord.CylindricalRepresentation(self.r*u.kpc,self.phi*u.rad,self.zeta*u.kpc )
 		self.d_sun=g["D_sun"][...]
@@ -425,17 +441,20 @@ class Cloud_Population(object):
 		self.healpix_vecs=g["Healpix_Vec"][...]
 
 		self.cartesian_galactocentric = self.cartesianize_coordinates(coord_array)
+		from utilities.utilities_functions import bash_colors
+
 		cols=bash_colors()
 		f.close()
 		print cols.bold("////// \t read from "+filename+"\t ////////")
 		pass
-	def set_parameters(self,radial_distr=[5.3,2.5],emissivity=[60,3.59236], thickness_distr=[0.1,9.],typical_size=10.,size_range=[0.3,50]):
+	def set_parameters(self,radial_distr=[5.3,2.5,3],emissivity=[60,3.59236], thickness_distr=[0.1,9.],typical_size=10.,size_range=[0.3,30]):
 		"""
 		Set key-parameters to the population of clouds.
 
 		- ``radial_distr``:{list}
-			:math:`(\mu_R,FWHM_R)` parameters to the  Galactic radius  distribution of the clouds, assumed Gaussian.
-			Default  :math:`\mu_R= 5.3 \, ,\sigma_R=FWHM_R/\sqrt(2 \ln 2)= 2.12` kpc.
+			:math:`(\mu_R,FWHM_R, R_bar)` parameters to the  Galactic radius  distribution of the clouds,
+			assumed Gaussian. The last parameters is the postition of the bar tip.
+			Default  :math:`\mu_R= 5.3 \, ,\sigma_R=FWHM_R/\sqrt(2 \ln 2)= 2.12, R_{bar}=3` kpc.
 		- ``thickness_distr``:{list}
 			:math:`(\FWHM_{z,0}, R_{z,0})` parameters to the vertical thickness of the Galactic plane
 			increasing in the outer Galaxy with :math:`\sigma(z)=sigma_z(0) *cosh(R/R_{z,0})`.
@@ -473,7 +492,7 @@ class Cloud_Population(object):
 		g.create_dataset('Phi',np.shape(self.phi),dtype=h5.h5t.IEEE_F64BE,data=self.phi)
 		if self.models[self.model]==1:
 			g.create_dataset('Theta',np.shape(self.theta),dtype=h5.h5t.IEEE_F64BE,data=self.theta)
-		elif self.models[self.model]==2:
+		elif self.models[self.model]>=2:
 			g.create_dataset('Z',np.shape(self.zeta),dtype=h5.h5t.IEEE_F64BE,data=self.zeta)
 
 		g.create_dataset('Sizes',np.shape(L),dtype=h5.h5t.IEEE_F64BE,data=L)
@@ -487,7 +506,7 @@ class Cloud_Population(object):
 
 	def __init__(self, N_clouds,model):
 		self.model=model
-		self.models={'Spherical':1,'Axisymmetric':2}
+		self.models={'Spherical':1,'Axisymmetric':2,'LogSpiral':3}
 		if self.models[model]==1:
 			self.r,self.theta,self.phi=0,0,0
 		elif self.models[model]==2:
@@ -537,5 +556,5 @@ class Collect_Clouds(Cloud_Population):
 		self.long=np.concatenate([p.long for p in  self.Pops])
 		if self.models[self.model]==1:
 			self.theta=np.concatenate([p.theta for p in  self.Pops])
-		elif self.models[self.model]==2:
+		elif self.models[self.model]>=2:
 			self.zeta=np.concatenate([p.zeta for p in  self.Pops])

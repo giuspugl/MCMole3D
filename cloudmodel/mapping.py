@@ -74,6 +74,6 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian'):
 			profile = gaussian_apodization(distances,angularsize)
 
 		mapcloud[listpix]	+= em_c*profile
-
-	hp.write_map(fname,mapcloud)
+	if not fname is None:
+		hp.write_map(fname,mapcloud)
 	return mapcloud
