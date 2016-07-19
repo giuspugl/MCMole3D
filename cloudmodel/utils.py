@@ -82,26 +82,28 @@ def pixelsize(nside,arcmin=True):
 	else :
 		return np.sqrt(4.*np.pi  /hp.nside2npix(nside))
 
-def plot_intensity_integrals(obs_I,mod_I,fname=None):
-	nbins_long=len(obs_I)
+def plot_intensity_integrals(obs_I,mod_I,model=None,fname=None):
+	stringn=['observ','model']
+	for l,s in zip([obs_I,mod_I],stringn):
+		nbins_long=len(l)
+		nsteps_long=nbins_long+1
+		long_edges=np.linspace(0.,2*np.pi,num=nsteps_long)
+		long_centr=[.5*(long_edges[i]+ long_edges[i+1]) for i in xrange(nbins_long)]
 
-	nsteps_long=nbins_long+1
-	long_edges=np.linspace(0.,2*np.pi,num=nsteps_long)
-	long_centr=[.5*(long_edges[i]+ long_edges[i+1]) for i in xrange(nbins_long)]
-
-	long_deg=np.array(long_centr)*rad2deg(1.)
-	longi=np.concatenate([long_deg[nbins_long/2:nbins_long]-360,long_deg[0:nbins_long/2]])
-	ob=np.concatenate([obs_I[nbins_long/2:nbins_long],obs_I[0:nbins_long/2]])
-	mod=np.concatenate([mod_I[nbins_long/2:nbins_long],mod_I[0:nbins_long/2]])
-
-	plt.plot(longi,mod,'--',label=r'$I^{model}(\ell)$')
-	plt.plot(longi,ob,label=r'$I^{observ}(\ell)$')
+		long_deg=np.array(long_centr)*rad2deg(1.)
+		longi=np.concatenate([long_deg[nbins_long/2:nbins_long]-360,long_deg[0:nbins_long/2]])
+		ob=np.concatenate([l[nbins_long/2:nbins_long],l[0:nbins_long/2]])
+		#mod=np.concatenate([mod_I[nbins_long/2:nbins_long],mod_I[0:nbins_long/2]])
+		#plt.plot(longi,mod,'--',label=r'$I^{model}(\ell)$')
+		plt.plot(longi,ob,label=r'$I^{'+s+'}(\ell)$')
 	plt.yscale('log')
 	plt.xlim([-180,180])
 	plt.ylim([1.e-1,3.e3])
 	plt.ylabel(r'$I(\ell)$ K km/s')
 	plt.xlabel('Galactic Longitude  ')
 	plt.legend(loc='best')
+	if not model is None:
+		plt.title(model+' Model')
 	if fname is None:
 		plt.show()
 	else :
@@ -142,20 +144,18 @@ def integrate_intensity_map(Imap,nside,latmin=-2,latmax=2. ,nsteps_long=500,rad_
 	I_l=[sum(Imap[l])*delta_b for l in listpix ]
 	Itot= sum(I_l)*delta_l
 	return Itot,I_l
-
+"""
 def log_spiral_radial_distribution(phi,rbar,phi_bar):
-	"""
-	values of pitch angle from Vallee' 1505.01202 i=13 deg
-	"""
-	pitch=deg2rad(-15.0)
-	pitch2=deg2rad(-13.)
+	#values of pitch angle from Vallee' 1505.01202 i=13 deg
+	pitch=deg2rad(-20.0)
+	pitch2=deg2rad(-20.)
 
 	Rbar=rbar
 	arm0=lambda theta: Rbar*np.exp((theta-np.pi)*np.tan(pitch))#**1.5
 	arm1=lambda theta: Rbar*np.exp((theta-2*np.pi)*np.tan(pitch2))#**1.5
 	arr=np.ma.masked_greater_equal(phi,np.pi+phi_bar)
 	less_then_pi=np.logical_not(arr.mask)
-	sigma=1.2
+	sigma=2.
 	r=phi*0.
 	for i in xrange(len(phi)):
 		if arr.mask[i]:
@@ -173,3 +173,43 @@ def log_spiral_radial_distribution(phi,rbar,phi_bar):
 	#plt.show()
 
 	return r
+
+"""
+
+def log_spiral_radial_distribution2(rbar,phi_bar,n,rloc,sigmar):
+	"""
+
+	values of pitch angle from Vallee' 1505.01202 i=13 deg
+	"""
+	pitch=-12.0*np.pi/180.
+	pitch2=-12.*np.pi/180.
+	pitch3=-12.*np.pi/180.
+
+	Rbar=rbar
+	Rmax=12
+	theta0= lambda R,A,B: A *(np.log(abs(R))+B) # this will take negative values .... better to put abs()
+	radii=	norm.rvs(loc=rloc ,scale=sigmar,size=n)	#np.random.uniform(low=Rbar,high=Rmax,size=n)
+	phi=radii*0.
+	phi[0:n/4]=theta0(radii[0:n/4],1./np.tan(pitch),-np.log(rbar))  -np.pi +phi_bar
+	phi[n/4:n/2]=theta0(radii[n/4:n/2],1./np.tan(pitch2),-np.log(rbar))  -2*np.pi +phi_bar
+	phi[n/2:3*n/4]=theta0(radii[n/2:3*n/4],1./np.tan(pitch3),-np.log(rbar))  -np.pi/2. +phi_bar
+	phi[3*n/4:n]=theta0(radii[3*n/4:n],1./np.tan(pitch),-np.log(rbar))  -3.*np.pi/2. +phi_bar
+
+	r=radii*0.
+	sigmamin=.30#kpc
+
+	sigmamax=.4 #kpc
+	m=(sigmamax - sigmamin)/(Rmax-Rbar)
+	q=sigmamin- m*Rbar
+
+	for i,ir in np.ndenumerate(radii) :
+		if ir <Rbar:
+			continue
+		sigma = abs(m*ir +q)
+		r[i]=norm.rvs(loc=ir ,scale=sigma,size=1)
+	#ax=plt.subplot(111,projection='polar')
+	#plt.plot(phi,r,'.')
+	#plt.plot(phi[less_then_pi],arm0(phi[less_then_pi]),'.')
+	#plt.plot(phi[arr.mask],arm1(phi[arr.mask]),'.')
+	#plt.show()
+	return r,phi

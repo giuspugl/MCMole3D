@@ -9,7 +9,7 @@ from scipy.stats import norm,gaussian_kde,uniform
 from  scipy import histogram2d
 import astropy.units  as u
 import astropy.coordinates  as coord
-from utils import log_spiral_radial_distribution
+from utils import log_spiral_radial_distribution2
 
 
 class Cloud(object):
@@ -120,16 +120,29 @@ class Cloud_Population(object):
 
 			if self.model=='Axisymmetric':
 				self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
+				rcore=0.
+				rscale=rbar
+				negs=np.ma.masked_less(self.r,0.)
+				#central molecular zone
+				self.r[negs.mask]=0.
 			elif 	self.model=='LogSpiral':
 				#the bar is assumed axisymmetric and with an inclination angle phi0~25 deg as
 				#it has been measured by  Fux et al. 1999
 				from utils import deg2rad
 				phi_0=deg2rad(25.)
 				self.phi+=phi_0
-				self.r[0:self.n/10]=norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n/10)
+				subsize=self.n/10
+				self.r[0:subsize]=norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=subsize)
 				#np.random.uniform(low=0.,high=8.,size=self.n/4)
+				rscale=rbar/1.5
+				self.r[subsize:self.n],self.phi[subsize:self.n]=log_spiral_radial_distribution2(\
+																rbar,phi_0,self.n-subsize,self.R_params[0],self.R_params[1])
+				#self.r[subsize:self.n]=log_spiral_radial_distribution(self.phi[subsize:self.n],rbar,phi_0)
+				#simulate the bar
+				arr=np.ma.masked_less(self.r,rbar)
+				self.r[arr.mask]=np.random.normal(loc=0.,scale=rscale,size=len(self.r[arr.mask]))
 
-				self.r[self.n/10:self.n]=log_spiral_radial_distribution(self.phi[self.n/10:self.n],rbar,phi_0)
+
 			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
 			# for reference see fig.6 of Heyer and Dame, 2015
 			sigma_z0=self.z_distr[0]
@@ -138,9 +151,6 @@ class Cloud_Population(object):
 			sigma_z=lambda R: sigma_z0*np.cosh((R/R_z0))
 			self.zeta=self.phi*0.
 			for i,x,p in zip(np.arange(self.n),self.r,self.phi):
-				if x<rbar:
-					self.r[i]=np.random.normal(loc=0.,scale=rbar,size=1)
-					x=self.r[i]
 				self.zeta[i]=np.random.normal(loc=0.,scale=sigma_z(x) )
 				self.clouds.append(Cloud(i,x,p,self.zeta[i],size=None,em=None))
 
