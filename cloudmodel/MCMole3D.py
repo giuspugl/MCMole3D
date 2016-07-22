@@ -120,8 +120,6 @@ class Cloud_Population(object):
 
 			if self.model=='Axisymmetric':
 				self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
-				rcore=0.
-				rscale=rbar
 				negs=np.ma.masked_less(self.r,0.)
 				#central molecular zone
 				self.r[negs.mask]=0.
@@ -140,8 +138,10 @@ class Cloud_Population(object):
 				#self.r[subsize:self.n]=log_spiral_radial_distribution(self.phi[subsize:self.n],rbar,phi_0)
 				#simulate the bar
 				arr=np.ma.masked_less(self.r,rbar)
-				self.r[arr.mask]=np.random.normal(loc=0.,scale=rscale,size=len(self.r[arr.mask]))
-
+				self.r[arr.mask]=abs(np.random.normal(loc=0.,scale=rscale,size=len(self.r[arr.mask])))
+				negs=np.ma.masked_less(self.r,0.)
+				#central molecular zone
+				self.r[negs.mask]=0.
 
 			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
 			# for reference see fig.6 of Heyer and Dame, 2015
@@ -356,7 +356,7 @@ class Cloud_Population(object):
 
 			ax.set_xlabel(a1+' [kpc]')
 			ax.set_ylabel(a2+' [kpc]')
-			if a2=='z' and self.model=='Axisymmetric':
+			if a2=='z' and self.model!='Spherical':
 				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=np.array(xyrange).flatten(),interpolation='gaussian', origin='upper')
 				ax.set_yticks((-.5,0,.5))
 			else:
@@ -457,7 +457,8 @@ class Cloud_Population(object):
 		f.close()
 		print cols.bold("////// \t read from "+filename+"\t ////////")
 		pass
-	def set_parameters(self,radial_distr=[5.3,2.5,3],emissivity=[60,3.59236], thickness_distr=[0.1,9.],typical_size=10.,size_range=[0.3,30]):
+	def set_parameters(self,radial_distr=[5.3,2.5,3],emissivity=[60,3.59236], thickness_distr=[0.1,9.],\
+							typical_size=10.,size_range=[0.3,30]):
 		"""
 		Set key-parameters to the population of clouds.
 
