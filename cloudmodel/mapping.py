@@ -14,7 +14,6 @@ def gaussian_apodization(x,d):
 
 	where ``d`` is the border of the cloud, i.e. the radius of the cloud.
 	"""
-#	sigma	=	d/np.sqrt(2.*p*np.log(10))
 	sigma	=	d / 6.
 	y		= 	(x/(np.sqrt(2)*sigma))**2
 
@@ -50,17 +49,44 @@ def distance_from_cloud_center(theta,phi,theta_c,phi_c):
 
 	return psi
 
-def do_healpy_map(Pop,nside,fname,apodization='gaussian'):
+def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None, p=1.e-2 ):
+	"""
+	Projects the cloud  population into an Healpix map as seen as an observer in the
+	solar circle.
 
+	**Parameters**
+	- ``Pop`` :
+	 	:class:`MCMole3D.Cloud_Population`
+	- ``nside``:{int}
+		Healpix  grid parameter
+	- ``fname``:{str}
+		path to the fits file where to store the map
+	- ``apodization``:{str}
+		profile of the cloud (either `gaussian` or `cos`)
+	- ``polangle``:{np.array}
+		the angle of polarization
+	- ``p``: {float}
+		polarization fraction ( default 1%)
+
+	(if the latter two parameters are  set, this routine produces
+	even polarization maps, via the Q and U Stokes parameters )
+
+	"""
 
 	N=Pop.n
-	mapcloud=np.zeros(hp.nside2npix(nside))
-	sizekpc=Pop.L/1.e3
 
+	if polangle is not None:
+		mapcloud=np.zeros(hp.nside2npix(nside)*3).reshape((hp.nside2npix(nside),3))
+		cospolangle=np.cos(2*polangle)
+		sinpolangle=np.sin(2*polangle)
+	else:
+		mapcloud=np.zeros(hp.nside2npix(nside))
+
+	sizekpc=Pop.L/1.e3
 	for i in xrange(N):
 		vec 		=	Pop.healpix_vecs[i]
 		angularsize =	sizekpc[i]/Pop.d_sun[i]
-		em_c=Pop.W[i]
+		I=Pop.W[i]
 		theta_c,phi_c= hp.vec2ang(vec)
 		listpix=hp.query_disc(nside,vec,angularsize)
 
@@ -73,7 +99,16 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian'):
 		if apodization == 'gaussian':
 			profile = gaussian_apodization(distances,angularsize)
 
-		mapcloud[listpix]	+= em_c*profile
+		Q	= p*I *cospolangle[i]
+		U	= p*I *sinpolangle[i]
+
+		if polangle is not None:
+			mapcloud[listpix,0]	=mapcloud[listpix,0] +   (I  *	profile)
+			mapcloud[listpix,1]	=mapcloud[listpix,1] +   (Q	 *	profile)
+			mapcloud[listpix,2]	=mapcloud[listpix,2] +   (U	 *	profile)
+		else:
+			mapcloud[listpix]	+= I*profile
 	if not fname is None:
 		hp.write_map(fname,mapcloud)
+
 	return mapcloud

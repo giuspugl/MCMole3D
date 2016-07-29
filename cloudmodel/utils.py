@@ -144,37 +144,6 @@ def integrate_intensity_map(Imap,nside,latmin=-2,latmax=2. ,nsteps_long=500,rad_
 	I_l=[sum(Imap[l])*delta_b for l in listpix ]
 	Itot= sum(I_l)*delta_l
 	return Itot,I_l
-"""
-def log_spiral_radial_distribution(phi,rbar,phi_bar):
-	#values of pitch angle from Vallee' 1505.01202 i=13 deg
-	pitch=deg2rad(-20.0)
-	pitch2=deg2rad(-20.)
-
-	Rbar=rbar
-	arm0=lambda theta: Rbar*np.exp((theta-np.pi)*np.tan(pitch))#**1.5
-	arm1=lambda theta: Rbar*np.exp((theta-2*np.pi)*np.tan(pitch2))#**1.5
-	arr=np.ma.masked_greater_equal(phi,np.pi+phi_bar)
-	less_then_pi=np.logical_not(arr.mask)
-	sigma=2.
-	r=phi*0.
-	for i in xrange(len(phi)):
-		if arr.mask[i]:
-			func=arm1
-		else:
-			func = arm0
-		r[i]=norm.rvs(loc=func(phi[i]),scale=sigma,size=1)
-
-
-	#ax=plt.subplot(111,projection='polar')
-	#plt.plot(phi,r,'.')
-	#plt.plot(phi[less_then_pi],arm0(phi[less_then_pi]),'.')
-	#plt.plot(phi[arr.mask],arm1(phi[arr.mask]),'.')
-
-	#plt.show()
-
-	return r
-
-"""
 
 def log_spiral_radial_distribution2(rbar,phi_bar,n,rloc,sigmar):
 	"""
