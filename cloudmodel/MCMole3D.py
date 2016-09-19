@@ -357,7 +357,7 @@ class Cloud_Population(object):
 			ax.set_xlabel(a1+' [kpc]')
 			ax.set_ylabel(a2+' [kpc]')
 			if a2=='z' and self.model!='Spherical':
-				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=np.array(xyrange).flatten(),interpolation='gaussian', origin='upper')
+				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=[-15,15, -1,1],interpolation='gaussian', origin='upper')
 				ax.set_yticks((-.5,0,.5))
 			else:
 				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=np.array(xyrange).flatten(),interpolation='gaussian', origin='upper')

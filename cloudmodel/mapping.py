@@ -49,7 +49,7 @@ def distance_from_cloud_center(theta,phi,theta_c,phi_c):
 
 	return psi
 
-def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None, p=1.e-2 ):
+def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map=None, p=1.e-2 ):
 	"""
 	Projects the cloud  population into an Healpix map as seen as an observer in the
 	solar circle.
@@ -63,8 +63,10 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None, p=1.e-2 
 		path to the fits file where to store the map
 	- ``apodization``:{str}
 		profile of the cloud (either `gaussian` or `cos`)
-	- ``polangle``:{np.array}
+	- ``polangle``:{np.array or map}
 		the angle of polarization
+	- ``depol_map``:{map}
+		the depolarization map due to line of sight effects
 	- ``p``: {float}
 		polarization fraction ( default 1%)
 
@@ -99,13 +101,19 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None, p=1.e-2 
 		if apodization == 'gaussian':
 			profile = gaussian_apodization(distances,angularsize)
 
-		Q	= p*I *cospolangle[i]
-		U	= p*I *sinpolangle[i]
 
 		if polangle is not None:
-			mapcloud[listpix,0]	=mapcloud[listpix,0] +   (I  *	profile)
-			mapcloud[listpix,1]	=mapcloud[listpix,1] +   (Q	 *	profile)
-			mapcloud[listpix,2]	=mapcloud[listpix,2] +   (U	 *	profile)
+			if depol_map is None:
+				Q	= p*I *cospolangle[i]
+				U	= p*I *sinpolangle[i]
+				mapcloud[listpix,0]	=mapcloud[listpix,0] +   (I  *	profile)
+				mapcloud[listpix,1]	=mapcloud[listpix,1] +   (Q	 *	profile)
+				mapcloud[listpix,2]	=mapcloud[listpix,2] +   (U	 *	profile)
+			else:
+				mapcloud[listpix,0]	+=(I  *	profile)
+				mapcloud[listpix,1]	+=(p*depol_map[listpix]*cospolangle[listpix])*I*profile
+				mapcloud[listpix,2]	+=(p*depol_map[listpix]*sinpolangle[listpix])*I*profile
+
 		else:
 			mapcloud[listpix]	+= I*profile
 	if not fname is None:
