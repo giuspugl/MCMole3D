@@ -49,7 +49,7 @@ def distance_from_cloud_center(theta,phi,theta_c,phi_c):
 
 	return psi
 
-def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map=None, p=1.e-2 ):
+def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map=None, p=1.e-2,highgalcut=0. ):
 	"""
 	Projects the cloud  population into an Healpix map as seen as an observer in the
 	solar circle.
@@ -69,6 +69,8 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map
 		the depolarization map due to line of sight effects
 	- ``p``: {float}
 		polarization fraction ( default 1%)
+	- ``highgalcut``: {float}
+		angle in radians to exclude clouds at high galactic latitudes, `sin(b)<= sin(angle)`;
 
 	(if the latter two parameters are  set, this routine produces
 	even polarization maps, via the Q and U Stokes parameters )
@@ -85,31 +87,37 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map
 		mapcloud=np.zeros(hp.nside2npix(nside))
 
 	sizekpc=Pop.L/1.e3
+
+	sincut=np.sin(highgalcut)
+	cloudcount=0
 	for i in xrange(N):
 		vec 		=	Pop.healpix_vecs[i]
 		angularsize =	sizekpc[i]/Pop.d_sun[i]
 		I=Pop.W[i]
 		theta_c,phi_c= hp.vec2ang(vec)
+		if  np.sin(theta_c)<= sincut  and  angularsize> 10./(180.*60)*np.pi :
+			cloudcount+=1
+			continue
+
 		listpix=hp.query_disc(nside,vec,angularsize)
-
 		theta_pix,phi_pix=hp.pix2ang(nside, listpix )
-
 		distances= distance_from_cloud_center(theta_pix,phi_pix,theta_c,phi_c)
-
 		if apodization == 'cos':
 			profile = cosine_apodization(distances,angularsize)
 		if apodization == 'gaussian':
 			profile = gaussian_apodization(distances,angularsize)
-
-
 		if polangle is not None:
 			if depol_map is None:
+				# polarization angle for the whole cloud from a uniform distribution of
+				#	random numbers in [0,pi]
 				Q	= p*I *cospolangle[i]
 				U	= p*I *sinpolangle[i]
 				mapcloud[listpix,0]	=mapcloud[listpix,0] +   (I  *	profile)
 				mapcloud[listpix,1]	=mapcloud[listpix,1] +   (Q	 *	profile)
 				mapcloud[listpix,2]	=mapcloud[listpix,2] +   (U	 *	profile)
 			else:
+				# polarization angle from map
+				#and geometrical  depolarization map
 				mapcloud[listpix,0]	+=(I  *	profile)
 				mapcloud[listpix,1]	+=(p*depol_map[listpix]*cospolangle[listpix])*I*profile
 				mapcloud[listpix,2]	+=(p*depol_map[listpix]*sinpolangle[listpix])*I*profile
@@ -118,5 +126,7 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map
 			mapcloud[listpix]	+= I*profile
 	if not fname is None:
 		hp.write_map(fname,mapcloud)
+	if cloudcount!=0:
+		print "Excluded %d clouds at high galactic latitude. (|b|>%g)\n"%(cloudcount,(np.pi/2. - highgalcut)*180./np.pi)
 
 	return mapcloud
