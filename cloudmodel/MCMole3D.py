@@ -569,3 +569,31 @@ class Collect_Clouds(Cloud_Population):
 			self.theta=np.concatenate([p.theta for p in  self.Pops])
 		elif self.models[self.model]>=2:
 			self.zeta=np.concatenate([p.zeta for p in  self.Pops])
+		self.W=np.concatenate([p.get_pop_emissivities_sizes()[0] for p in  self.Pops])
+		self.L=np.concatenate([p.get_pop_emissivities_sizes()[1] for p in  self.Pops])
+
+
+	def write2hdf5(self,filename):
+		"""
+		Write onto an hfd5 file the whole catalogue
+
+		"""
+		healpix_vecs=np.concatenate([p.compute_healpix_vec() for p in self.Pops])
+		f=h5.File(filename,'w')
+		g=f.create_group("Cloud_Population")
+		g.create_dataset('Healpix_Vec',np.shape(healpix_vecs),dtype=h5.h5t.IEEE_F64BE,data=healpix_vecs)
+		g.create_dataset('R',np.shape(self.r),dtype=h5.h5t.IEEE_F64BE,data=self.r)
+		g.create_dataset('Phi',np.shape(self.phi),dtype=h5.h5t.IEEE_F64BE,data=self.phi)
+		if self.models[self.model]==1:
+			g.create_dataset('Theta',np.shape(self.theta),dtype=h5.h5t.IEEE_F64BE,data=self.theta)
+		elif self.models[self.model]>=2:
+			g.create_dataset('Z',np.shape(self.zeta),dtype=h5.h5t.IEEE_F64BE,data=self.zeta)
+
+		g.create_dataset('Sizes',np.shape(self.L),dtype=h5.h5t.IEEE_F64BE,data=self.L)
+		g.create_dataset('Emissivity',np.shape(self.W),dtype=h5.h5t.IEEE_F64BE,data=self.W)
+		g.create_dataset('D_sun',np.shape(self.d_sun),dtype=h5.h5t.IEEE_F64BE,data=self.d_sun)
+		g.create_dataset('Gal_Latitude',np.shape(self.lat),dtype=h5.h5t.IEEE_F64BE,data=self.lat)
+		g.create_dataset('Gal_longitude',np.shape(self.long),dtype=h5.h5t.IEEE_F64BE,data=self.long)
+
+		f.close()
+		pass
