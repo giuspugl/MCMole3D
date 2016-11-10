@@ -94,65 +94,53 @@ class Cloud_Population(object):
 	def __call__(self):
 
 		self.clouds=[]
+		if self.random_seed: np.random.seed(11)
 
 		a=np.random.uniform(low=0.,high=1.,size=self.n)
 		self.phi=2.*np.pi*a
-		if self.model=='Spherical':
+		self.r=self.phi*0.
+		rbar=self.R_params[2]
+
+		if self.model=='Axisymmetric':
+			if self.random_seed: np.random.seed(29)
 			self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
+			negs=np.ma.masked_less(self.r,0.)
+			#central molecular zone
+			self.r[negs.mask]=0.
+		elif self.model=='LogSpiral':
+			#the bar is assumed axisymmetric and with an inclination angle phi0~25 deg as
+			#it has been measured by  Fux et al. 1999
+			from utils import deg2rad
+			phi_0=deg2rad(25.)
+			self.phi+=phi_0
+			subsize=self.n/10
 
-			v=np.random.uniform(low=0.,high=1.,size=self.n)
-			self.theta=np.arccos(2.*v-1.)
+			if self.random_seed: np.random.seed(39)
+			self.r[0:subsize]=norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=subsize)
 
-			coord_array=coord.PhysicsSphericalRepresentation(self.phi*u.rad,self.theta * u.rad,self.r*u.kpc )
-			self.cartesian_galactocentric= self.cartesianize_coordinates(coord_array)
-			self.heliocentric_coordinates()
+			rscale=rbar/1.5
+			if self.random_seed: np.random.seed(17)
+			self.r[subsize:self.n],self.phi[subsize:self.n]=log_spiral_radial_distribution2(\
+											rbar,phi_0,self.n-subsize,self.R_params[0],self.R_params[1])
 
-			for i,x,p,t,d,latit,longit in zip(np.arange(self.n),self.r,self.phi,self.theta,self.d_sun,self.lat,self.long):
-				if x<=0.:
-					self.r[i]=np.random.uniform(low=0.,high=1.,size=1)
-					x=self.r[i]
-				c=Cloud(i,x,p,t,size=None,em=None)
-				c.assign_sun_coord(d,latit,longit)
-				self.clouds.append(c)
-		else:
-			self.r=self.phi*0.
-			rbar=self.R_params[2]
+			#simulate the bar
+			arr=np.ma.masked_less(self.r,rbar)
+			if self.random_seed: np.random.seed(13)
+			self.r[arr.mask]=abs(np.random.normal(loc=0.,scale=rscale,size=len(self.r[arr.mask])))
 
-			if self.model=='Axisymmetric':
-				self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
-				negs=np.ma.masked_less(self.r,0.)
-				#central molecular zone
-				self.r[negs.mask]=0.
-			elif 	self.model=='LogSpiral':
-				#the bar is assumed axisymmetric and with an inclination angle phi0~25 deg as
-				#it has been measured by  Fux et al. 1999
-				from utils import deg2rad
-				phi_0=deg2rad(25.)
-				self.phi+=phi_0
-				subsize=self.n/10
-				self.r[0:subsize]=norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=subsize)
-				#np.random.uniform(low=0.,high=8.,size=self.n/4)
-				rscale=rbar/1.5
-				self.r[subsize:self.n],self.phi[subsize:self.n]=log_spiral_radial_distribution2(\
-																rbar,phi_0,self.n-subsize,self.R_params[0],self.R_params[1])
-				#self.r[subsize:self.n]=log_spiral_radial_distribution(self.phi[subsize:self.n],rbar,phi_0)
-				#simulate the bar
-				arr=np.ma.masked_less(self.r,rbar)
-				self.r[arr.mask]=abs(np.random.normal(loc=0.,scale=rscale,size=len(self.r[arr.mask])))
-				negs=np.ma.masked_less(self.r,0.)
-				#central molecular zone
-				self.r[negs.mask]=0.
+		#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
+		# for reference see fig.6 of Heyer and Dame, 2015
+		sigma_z0=self.z_distr[0]
+		R_z0=self.z_distr[1]
 
-			#the thickness of the Galactic plane is function of the Galactic Radius roughly as ~ 100 pc *cosh((x/R0) ), with R0~10kpc
-			# for reference see fig.6 of Heyer and Dame, 2015
-			sigma_z0=self.z_distr[0]
-			R_z0=self.z_distr[1]
+		sigma_z=lambda R: sigma_z0*np.cosh((R/R_z0))
+		self.zeta=self.phi*0.
 
-			sigma_z=lambda R: sigma_z0*np.cosh((R/R_z0))
-			self.zeta=self.phi*0.
-			for i,x,p in zip(np.arange(self.n),self.r,self.phi):
-				self.zeta[i]=np.random.normal(loc=0.,scale=sigma_z(x) )
-				self.clouds.append(Cloud(i,x,p,self.zeta[i],size=None,em=None))
+		if self.random_seed: np.random.seed(19)
+
+		for i,x,p in zip(np.arange(self.n),self.r,self.phi):
+			self.zeta[i]=np.random.normal(loc=0.,scale=sigma_z(x) )
+			self.clouds.append(Cloud(i,x,p,self.zeta[i],size=None,em=None))
 
 			coord_array=coord.CylindricalRepresentation(self.r*u.kpc,self.phi*u.rad,self.zeta*u.kpc )
 			self.cartesian_galactocentric = self.cartesianize_coordinates(coord_array)
@@ -160,9 +148,6 @@ class Cloud_Population(object):
 
 			for c,d,latit,longit in zip(self.clouds,self.d_sun,self.lat,self.long):
 				c.assign_sun_coord(d,latit,longit)
-
-
-
 		self.L=np.array(self.sizes)
 
 
@@ -385,7 +370,7 @@ class Cloud_Population(object):
 				print cols.green("ID \t R \t\t PHI  \t\t THETA\t\t Emissivity \t Size \n")
 				print cols.green(" \t[kpc]\t\t[rad]\t\t [rad]\t\t  [K km/s]\t [pc]\t [kpc] \t [deg] \t [deg] \n")
 
-			elif self.model=='Axisymmetric':
+			else:
 				print cols.green("ID \t R  \t\t PHI\t\t Z \t\t Emissivity\t Size \n")
 				print cols.green(" \t[kpc]\t\t[rad]\t\t[kpc]\t\t[K km/s]\t[pc]\t[kpc] \t [deg] \t [deg]\n")
 			print cols.header("---"*40)
@@ -393,7 +378,7 @@ class Cloud_Population(object):
 			if self.model=='Spherical':
 				print cols.green("ID \t R \t\t PHI  \t\t THETA\t\t Emissivity \t Size \t\t D_sun \t\t b \t\tl\n")
 				print cols.green(" \t[kpc]\t\t[rad]\t\t [rad]\t\t  [K km/s]\t [pc]\t\t[kpc] \t\t [deg] \t\t [deg]\n")
-			elif self.model=='Axisymmetric':
+			else:
 				print cols.green("ID \t R  \t\t PHI\t\t Z \t\t Emissivity\t Size \t\t D_sun \t\t b \t\tl\n")
 				print cols.green(" \t[kpc]\t\t[rad]\t\t[kpc]\t\t[K km/s]\t[pc]\t\t[kpc] \t\t [deg] \t\t [deg]\n")
 			print cols.header("---"*40)
@@ -515,9 +500,12 @@ class Cloud_Population(object):
 		f.close()
 		pass
 
-	def __init__(self, N_clouds,model):
+	def __init__(self, N_clouds,model,randseed=False ):
 		self.model=model
 		self.models={'Spherical':1,'Axisymmetric':2,'LogSpiral':3}
+		#it's possible to execute simulations with the same random seed
+		self.random_seed=randseed
+
 		if self.models[model]==1:
 			self.r,self.theta,self.phi=0,0,0
 		elif self.models[model]==2:
