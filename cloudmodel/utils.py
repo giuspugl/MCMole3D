@@ -1,3 +1,14 @@
+#
+#   UTILIS.PY
+#   miscellaneous  functions
+#   date: 2016-12-02
+#   author: GIUSEPPE PUGLISI
+#
+#   Copyright (C) 2016   Giuseppe Puglisi    giuspugl@sissa.it
+#
+
+
+
 import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
