@@ -18,7 +18,7 @@ def deg2rad(angle):
 def rad2deg(angle):
 	return angle*180./np.pi
 
-def plot_size_function(sizemin,sizemax):
+def plot_size_function(sizemin,sizemax,figpath=None):
 
 	for alpha_L in [3.9,3.3]:
 	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
@@ -41,11 +41,13 @@ def plot_size_function(sizemin,sizemax):
 		plt.xlabel(r'$L $ [ pc ]',fontsize=20)
 		plt.ylabel(r'$\mathcal{P}(<L)$',fontsize=20)
 	plt.legend(loc='best',prop=10)
-	plt.savefig('/home/peppe/pb2/figures/sizefunction.pdf')
+	if not (figpath is None):
+			plt.savefig(figpath)
+
 	plt.show()
 	pass
 
-def plot_2powerlaw_size_function(s0,s1,s2):
+def plot_2powerlaw_size_function(s0,s1,s2,figpath=None):
 
 	alpha1=.8
 	spectral=[3.3,3.9]
@@ -87,7 +89,8 @@ def plot_2powerlaw_size_function(s0,s1,s2):
 		plt.xlabel(r'$L $ [ pc ]',fontsize=20)
 		plt.ylabel(r'$\mathcal{P}(<L)$',fontsize=20)
 	plt.legend(loc='best',prop={'size':15})
-	plt.savefig('/home/peppe/pb2/figures/sizefunction_2powerlaw.pdf')
+	if not (figpath is None):
+			plt.savefig(figpath)
 	plt.show()
 	pass
 

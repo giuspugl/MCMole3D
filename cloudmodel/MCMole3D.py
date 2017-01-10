@@ -288,7 +288,7 @@ class Cloud_Population(object):
 
 		ymajorFormatter = FormatStrFormatter('%1.1e')
 		ax.yaxis.set_major_formatter(ymajorFormatter)
-		plt.ylabel('N per bin')
+		plt.ylabel('N per bin',fontsize=20)
 
 
 		plt.subplot(2,2,2)
