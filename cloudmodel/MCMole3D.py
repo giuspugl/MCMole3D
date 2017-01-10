@@ -247,19 +247,19 @@ class Cloud_Population(object):
 
 		ymajorFormatter = FormatStrFormatter('%1.1e')
 		ax.yaxis.set_major_formatter(ymajorFormatter)
-		plt.xlabel(r'$R_{gal}\,$ [kpc]')
+		plt.xlabel(r'$R_{gal}\,$ [kpc]',fontsize=20)
 
-		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
-		plt.ylabel('N per bin')
+		plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
+		plt.ylabel('N per bin',fontsize=20)
 		radtodeg=180./np.pi
 		plt.subplot(2,2,4)
 		if self.model=='Spherical':
 			plt.hist(np.cos(self.theta),bins=np.linspace(-1.,1.,5),histtype='stepfilled',alpha=0.3)
-			plt.xlabel(r'$\cos(\theta )\, $ ')
+			plt.xlabel(r'$\cos(\theta )\, $ ',fontsize=20)
 		else:
 			plt.hist(self.zeta*1.e3,80,histtype='stepfilled',alpha=0.3,label='Bin = 5 pc')
-			plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
-			plt.xlabel('Vertical position [pc] ')
+			plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
+			plt.xlabel('Vertical position [pc] ',fontsize=20)
 			plt.xlim([-200,200])
 			ax = plt.gca()
 
@@ -275,8 +275,8 @@ class Cloud_Population(object):
 
 		plt.subplot(2,2,3)
 		plt.hist(self.d_sun,200,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
-		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
-		plt.xlabel('Heliocentric Distance [kpc]')
+		plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
+		plt.xlabel('Heliocentric Distance [kpc]',fontsize=20)
 		plt.xlim([0,20])
 		ax = plt.gca()
 		xmajorLocator = MultipleLocator(5)
@@ -308,9 +308,9 @@ class Cloud_Population(object):
 		ymajorFormatter = FormatStrFormatter('%1.1e')
 		ax.yaxis.set_major_formatter(ymajorFormatter)
 
-		plt.xlabel('Galactic Longitude [deg] ')
+		plt.xlabel('Galactic Longitude [deg] ',fontsize=20)
 
-		plt.legend(loc='upper right', numpoints = 1,prop={'size':9} )
+		plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
 		plt.xlim([180,-180])
 
 		if figname is None:
@@ -325,7 +325,7 @@ class Cloud_Population(object):
 		It can be the thickness or the emissivity profile
 		"""
 		plt.plot(self.r,X,color+'-')
-		plt.xlabel(r'$R_{gal}\, \mathrm{[kpc]}$ ')
+		plt.xlabel(r'$R_{gal}\, \mathrm{[kpc]}$ ',fontsize=20)
 		plt.ylabel(ylabel)
 		plt.yscale('log')
 		if figname is None:
@@ -366,8 +366,8 @@ class Cloud_Population(object):
 			hh[hh < thresh] = np.nan # fill the areas with low density by NaNs
 			ax=plt.subplot(gs[c-1])
 
-			ax.set_xlabel(a1+' [kpc]')
-			ax.set_ylabel(a2+' [kpc]')
+			ax.set_xlabel(a1+' [kpc]',fontsize=20)
+			ax.set_ylabel(a2+' [kpc]',fontsize=20)
 			if a2=='z' and self.model!='Spherical':
 				im=ax.imshow(np.flipud(hh.T),cmap='jet',vmin=0, vmax=hhsub.max()/2, extent=[-15,15, -1,1],interpolation='gaussian', origin='upper')
 				ax.set_yticks((-.5,0,.5))

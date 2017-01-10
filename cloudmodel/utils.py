@@ -30,17 +30,17 @@ def plot_size_function(sizemin,sizemax):
 		p=lambda l: 1./k*(l**(1-alpha_L) - sizemin**(1-alpha_L))
 		plt.subplot(2,1,1)
 		plt.xlim([8,100])
-		plt.hist(sizes,bins=100,normed=False,alpha=0.6)
+		plt.hist(sizes,bins=100,normed=False,alpha=0.6,color='blue')
 		plt.yscale('log', nonposy='clip')
 		plt.xscale('log')
-		plt.ylabel(r'$\xi(L)$')
+		plt.ylabel(r'$\xi(L)$',fontsize=20)
 		plt.subplot(2,1,2)
 		plt.xlim([5,50])
-		plt.plot(l,p(l),label=r'$\alpha_L=$'+str(alpha_L))
+		plt.plot(l,p(l),'b',label=r'$\alpha_L=$'+str(alpha_L))
 
-		plt.xlabel(r'$L $ [ pc ]')
-		plt.ylabel(r'$\mathcal{P}(<L)$')
-	plt.legend(loc='best')
+		plt.xlabel(r'$L $ [ pc ]',fontsize=20)
+		plt.ylabel(r'$\mathcal{P}(<L)$',fontsize=20)
+	plt.legend(loc='best',prop=10)
 	plt.savefig('/home/peppe/pb2/figures/sizefunction.pdf')
 	plt.show()
 	pass
@@ -49,7 +49,10 @@ def plot_2powerlaw_size_function(s0,s1,s2):
 
 	alpha1=.8
 	spectral=[3.3,3.9]
-	for alpha2,col in zip(spectral,['b-','g-']):
+	coldict=dict.fromkeys(spectral)
+	coldict={i:j for i,j in zip(spectral,['blue','red'])}
+
+	for alpha2,col in zip(spectral,['b-','r-']):
 	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
 
 		k2=1./(  1./(alpha1 + 1.) *s1**(-alpha1-alpha2) *( s1**(1+alpha1 )- s0**(1+alpha1) ) \
@@ -72,17 +75,18 @@ def plot_2powerlaw_size_function(s0,s1,s2):
 		p2=lambda l: k2/(1-alpha2)*(l**(1-alpha2) - s1**(1-alpha2)) + X10
 		plt.subplot(2,1,1)
 		plt.xlim([s0,100])
-		plt.hist(sizes,bins=70,normed=True,alpha=0.4)
+
+		plt.hist(sizes,bins=70,normed=True,alpha=0.4,color=coldict[alpha2])
 		plt.yscale('log', nonposy='clip')
 		plt.xscale('log')
-		plt.ylabel(r'$\xi(L)$')
+		plt.ylabel(r'$\xi(L)$',fontsize=20)
 		plt.subplot(2,1,2)
 		plt.xlim([s0,s2])
-		plt.plot(l1,p1(l1),col,label=r'$\alpha_L=$'+str(alpha2) )
+		plt.plot(l1,p1(l1),col,label=r'$\alpha_L=$'+str(alpha2))
 		plt.plot(l2,p2(l2),col)
-		plt.xlabel(r'$L $ [ pc ]')
-		plt.ylabel(r'$\mathcal{P}(<L)$')
-	plt.legend(loc='best')
+		plt.xlabel(r'$L $ [ pc ]',fontsize=20)
+		plt.ylabel(r'$\mathcal{P}(<L)$',fontsize=20)
+	plt.legend(loc='best',prop={'size':15})
 	plt.savefig('/home/peppe/pb2/figures/sizefunction_2powerlaw.pdf')
 	plt.show()
 	pass
@@ -110,9 +114,9 @@ def plot_intensity_integrals(obs_I,mod_I,model=None,fname=None):
 	plt.yscale('log')
 	plt.xlim([-180,180])
 	plt.ylim([1.e-1,3.e3])
-	plt.ylabel(r'$I(\ell)$ K km/s')
-	plt.xlabel('Galactic Longitude  ')
-	plt.legend(loc='best')
+	plt.ylabel(r'$I(\ell)$ K km/s',fontsize=20)
+	plt.xlabel('Galactic Longitude  ',fontsize=20)
+	plt.legend(loc='best',prop={'size':15})
 	if not model is None:
 		plt.title(model+' Model')
 	if fname is None:
