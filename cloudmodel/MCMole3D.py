@@ -263,15 +263,15 @@ class Cloud_Population(object):
 			plt.xlabel('Vertical position [pc] ',fontsize=17)
 			plt.xlim([-200,200])
 			ax2 = plt.gca()
-
+			plt.ylim([0,0.01])
 			xmajorLocator = MultipleLocator(100)
 			xminorLocator = MultipleLocator(10)
 			xmajorFormatter = FormatStrFormatter('%d')
 			ax2.xaxis.set_major_locator(xmajorLocator)
 			ax2.xaxis.set_major_formatter(xmajorFormatter)
 			ax2.xaxis.set_minor_locator(xminorLocator)
-			#ax2.yaxis.set_major_locator(MultipleLocator(.05))
-			#ax2.yaxis.set_minor_locator(MultipleLocator(.01))
+			ax2.yaxis.set_major_locator(MultipleLocator(.005))
+			ax2.yaxis.set_minor_locator(MultipleLocator(.001))
 
 
 			ymajorFormatter = FormatStrFormatter('%1.1e')
@@ -296,7 +296,7 @@ class Cloud_Population(object):
 		plt.ylabel('PDF',fontsize=17)
 
 
-		plt.subplot(2,2,2,sharey=ax2)
+		plt.subplot(2,2,2)
 		m=np.where(self.long >=np.pi)[0]
 		l=self.long*0.
 		l=self.long
@@ -309,7 +309,8 @@ class Cloud_Population(object):
 		ax.xaxis.set_major_locator(xmajorLocator)
 		ax.xaxis.set_major_formatter(xmajorFormatter)
 		ax.xaxis.set_minor_locator(xminorLocator)
-
+		ax.yaxis.set_major_locator(MultipleLocator(.005))
+		ax.yaxis.set_minor_locator(MultipleLocator(.001))
 		ymajorFormatter = FormatStrFormatter('%1.1e')
 		#ax.yaxis.set_major_formatter(ymajorFormatter)
 
@@ -317,6 +318,7 @@ class Cloud_Population(object):
 
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
 		plt.xlim([180,-180])
+		plt.ylim([0,0.02])
 
 		if figname is None:
 			plt.show()
