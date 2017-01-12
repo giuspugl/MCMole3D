@@ -235,68 +235,73 @@ class Cloud_Population(object):
 
 		#plt.subplot(2,3,1)
 		plt.subplot(2,2,1)
-		h,bins,p=plt.hist(self.r,200,normed=0,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
-		ax = plt.gca()
+		h,bins,p=plt.hist(self.r,200,normed=True,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
+		ax1 = plt.gca()
 		plt.xlim([0,12])
 		xmajorLocator = MultipleLocator(2)
 		xminorLocator = MultipleLocator(.5)
 		xmajorFormatter = FormatStrFormatter('%d')
-		ax.xaxis.set_major_locator(xmajorLocator)
-		ax.xaxis.set_major_formatter(xmajorFormatter)
-		ax.xaxis.set_minor_locator(xminorLocator)
+		ax1.xaxis.set_major_locator(xmajorLocator)
+		ax1.xaxis.set_major_formatter(xmajorFormatter)
+		ax1.xaxis.set_minor_locator(xminorLocator)
 
-		ymajorFormatter = FormatStrFormatter('%1.1e')
-		ax.yaxis.set_major_formatter(ymajorFormatter)
-		plt.xlabel(r'$R_{gal}\,$ [kpc]',fontsize=20)
+		#ymajorFormatter = FormatStrFormatter('%1')
+		#ax.yaxis.set_major_formatter(ymajorFormatter)
+		plt.xlabel(r'$R_{gal}\,$ [kpc]',fontsize=17)
 
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
-		plt.ylabel('N per bin',fontsize=20)
+		#plt.ylabel('N per bin '+r'$(\times 10^5)$',fontsize=17)
+		plt.ylabel('PDF',fontsize=17)
 		radtodeg=180./np.pi
 		plt.subplot(2,2,4)
 		if self.model=='Spherical':
 			plt.hist(np.cos(self.theta),bins=np.linspace(-1.,1.,5),histtype='stepfilled',alpha=0.3)
 			plt.xlabel(r'$\cos(\theta )\, $ ',fontsize=20)
 		else:
-			plt.hist(self.zeta*1.e3,80,histtype='stepfilled',alpha=0.3,label='Bin = 5 pc')
+			plt.hist(self.zeta*1e3,80,normed=True,histtype='stepfilled',alpha=0.3,label='Bin = 5 pc')
 			plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
-			plt.xlabel('Vertical position [pc] ',fontsize=20)
+			plt.xlabel('Vertical position [pc] ',fontsize=17)
 			plt.xlim([-200,200])
-			ax = plt.gca()
+			ax2 = plt.gca()
 
 			xmajorLocator = MultipleLocator(100)
 			xminorLocator = MultipleLocator(10)
 			xmajorFormatter = FormatStrFormatter('%d')
-			ax.xaxis.set_major_locator(xmajorLocator)
-			ax.xaxis.set_major_formatter(xmajorFormatter)
-			ax.xaxis.set_minor_locator(xminorLocator)
+			ax2.xaxis.set_major_locator(xmajorLocator)
+			ax2.xaxis.set_major_formatter(xmajorFormatter)
+			ax2.xaxis.set_minor_locator(xminorLocator)
+			#ax2.yaxis.set_major_locator(MultipleLocator(.05))
+			#ax2.yaxis.set_minor_locator(MultipleLocator(.01))
+
 
 			ymajorFormatter = FormatStrFormatter('%1.1e')
-			ax.yaxis.set_major_formatter(ymajorFormatter)
+			#ax.yaxis.set_major_formatter(ymajorFormatter)
 
-		plt.subplot(2,2,3)
-		plt.hist(self.d_sun,200,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
+		plt.subplot(2,2,3,sharey=ax1)
+		plt.hist(self.d_sun,200,normed=True,histtype='stepfilled',alpha=0.3,label='Bin =0.1 kpc')
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
-		plt.xlabel('Heliocentric Distance [kpc]',fontsize=20)
+		plt.xlabel('Heliocentric Distance [kpc]',fontsize=17)
 		plt.xlim([0,20])
-		ax = plt.gca()
+		ax3 = plt.gca()
 		xmajorLocator = MultipleLocator(5)
 		xminorLocator = MultipleLocator(1)
 		xmajorFormatter = FormatStrFormatter('%d')
-		ax.xaxis.set_major_locator(xmajorLocator)
-		ax.xaxis.set_major_formatter(xmajorFormatter)
-		ax.xaxis.set_minor_locator(xminorLocator)
+		ax3.xaxis.set_major_locator(xmajorLocator)
+		ax3.xaxis.set_major_formatter(xmajorFormatter)
+		ax3.xaxis.set_minor_locator(xminorLocator)
 
 		ymajorFormatter = FormatStrFormatter('%1.1e')
-		ax.yaxis.set_major_formatter(ymajorFormatter)
-		plt.ylabel('N per bin',fontsize=20)
+		#ax.yaxis.set_major_formatter(ymajorFormatter)
+		#plt.ylabel('N per bin '+r'$(\times 10^5)$',fontsize=17)
+		plt.ylabel('PDF',fontsize=17)
 
 
-		plt.subplot(2,2,2)
+		plt.subplot(2,2,2,sharey=ax2)
 		m=np.where(self.long >=np.pi)[0]
 		l=self.long*0.
 		l=self.long
 		l[m]=self.long[m] - 2*np.pi
-		plt.hist(l*radtodeg,bins=np.linspace(-180,180,72),histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
+		plt.hist(l*radtodeg,bins=np.linspace(-180,180,72),normed=True,histtype='stepfilled',alpha=0.3,label='Bin = 5 deg ')
 		ax = plt.gca()
 		xmajorLocator = MultipleLocator(100)
 		xminorLocator = MultipleLocator(10)
@@ -306,9 +311,9 @@ class Cloud_Population(object):
 		ax.xaxis.set_minor_locator(xminorLocator)
 
 		ymajorFormatter = FormatStrFormatter('%1.1e')
-		ax.yaxis.set_major_formatter(ymajorFormatter)
+		#ax.yaxis.set_major_formatter(ymajorFormatter)
 
-		plt.xlabel('Galactic Longitude [deg] ',fontsize=20)
+		plt.xlabel('Galactic Longitude [deg] ',fontsize=17)
 
 		plt.legend(loc='upper right', numpoints = 1,prop={'size':15} )
 		plt.xlim([180,-180])

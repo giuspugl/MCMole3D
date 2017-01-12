@@ -77,13 +77,17 @@ def plot_2powerlaw_size_function(s0,s1,s2,figpath=None):
 		p2=lambda l: k2/(1-alpha2)*(l**(1-alpha2) - s1**(1-alpha2)) + X10
 		plt.subplot(2,1,1)
 		plt.xlim([s0,100])
-
+		plt.xticks(fontsize=15)
+		plt.yticks(fontsize=15)
 		plt.hist(sizes,bins=70,normed=True,alpha=0.4,color=coldict[alpha2])
 		plt.yscale('log', nonposy='clip')
 		plt.xscale('log')
 		plt.ylabel(r'$\xi(L)$',fontsize=20)
 		plt.subplot(2,1,2)
 		plt.xlim([s0,s2])
+		plt.xticks(fontsize=15)
+		plt.yticks(fontsize=15)
+
 		plt.plot(l1,p1(l1),col,label=r'$\alpha_L=$'+str(alpha2))
 		plt.plot(l2,p2(l2),col)
 		plt.xlabel(r'$L $ [ pc ]',fontsize=20)
@@ -119,6 +123,7 @@ def plot_intensity_integrals(obs_I,mod_I,model=None,fname=None):
 	plt.ylim([1.e-1,3.e3])
 	plt.ylabel(r'$I(\ell)$ K km/s',fontsize=20)
 	plt.xlabel('Galactic Longitude  ',fontsize=20)
+
 	plt.legend(loc='best',prop={'size':15})
 	if not model is None:
 		plt.title(model+' Model')
