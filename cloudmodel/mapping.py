@@ -15,14 +15,13 @@ import numpy as np
 
 def gaussian_apodization(x,d):
 	"""
-	smooth the emissivity of the cloud with a gaussian , centered in the center of the cloud
-	and with sigma defined in such a way that:
+	Smooth the emissivity of the cloud with a gaussian profile, centered in the center of the cloud and with sigma defined in such a way that:
 
 	.. math::
-
 		d = 6 \sigma
 
-	where ``d`` is the border of the cloud, i.e. the radius of the cloud.
+	where :math:`d` is the border of the cloud, coinciding with size of the cloud.
+
 	"""
 	sigma	=	d / 6.
 	y		= 	(x/(np.sqrt(2)*sigma))**2
@@ -31,21 +30,25 @@ def gaussian_apodization(x,d):
 
 def cosine_apodization(x,d):
 	"""
-	smooth the emissivity of the cloud with a cosine, with the following relation:
+
+	Smooth the emissivity of the cloud with a cosine function, with the following relation:
+
 	.. math::
 
-		\epsilon(x) = \epsilon_0 \cos(\frac{\pi}{2} \frac{x}{d})
+		\epsilon(x) = \epsilon_c \cos ( frac{\pi}{2} frac{x}{d})
 
-	where ``d`` is the border of the cloud, i.e. the radius of the cloud, in such a
-	way that the  :math:`\epsilon(d)=0`.
+	here :math:`d` is the border of the cloud, i.e. the radius of the cloud, in such a	way that the  :math:`\epsilon(d)=0`.
+
 	"""
 	return np.cos(x/d*np.pi/2.)
 
 def distance_from_cloud_center(theta,phi,theta_c,phi_c):
 	"""
-	given a position of one pixel :math:`(\theta,\phi)` within the cloud compute the arclength
+	given a position of one pixel :math:`(theta,\phi)` within the cloud compute the arclength
 	of the pixel from the center, onto a unitary sphere.  by considering scalar products of vectors
-	to the points  on the sphere to get the angle :math:`\psi` between them. .
+	to the points  on the sphere to get the angle :math:`\psi` between them.
+	This routine is exploited by :func:`do_healpy_map`.
+
 	see for reference :
 	`Arclength on a sphere <http://math.stackexchange.com/questions/231221/great-arc-distance-between-two-points-on-a-unit-sphere>`_
 	"""
@@ -61,10 +64,10 @@ def distance_from_cloud_center(theta,phi,theta_c,phi_c):
 
 def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map=None, p=1.e-2,highgalcut=0. ):
 	"""
-	Projects the cloud  population into an Healpix map as seen as an observer in the
-	solar circle.
+	Projects the cloud  population into an :mod:`healpy` map as seen as an observer in the 	solar circle.
 
 	**Parameters**
+
 	- ``Pop`` :
 	 	:class:`MCMole3D.Cloud_Population`
 	- ``nside``:{int}
@@ -82,8 +85,9 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map
 	- ``highgalcut``: {float}
 		angle in radians to exclude clouds at high galactic latitudes, `sin(b)<= sin(angle)`;
 
-	(if the latter two parameters are  set, this routine produces
-	even polarization maps, via the Q and U Stokes parameters )
+	.. note::
+
+		if `polangle` is set this routine produces 	even polarization maps, i.e. the Q and U Stokes parameters.
 
 	"""
 

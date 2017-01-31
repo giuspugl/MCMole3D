@@ -13,41 +13,19 @@ import healpy as hp
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-def deg2rad(angle):
-	return angle*np.pi/180.
-def rad2deg(angle):
-	return angle*180./np.pi
 
-def plot_size_function(sizemin,sizemax,figpath=None):
 
-	for alpha_L in [3.9,3.3]:
-	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
-
-		k=(sizemax**(1-alpha_L)- sizemin**(1-alpha_L))
-		x=np.random.uniform(size=40000)
-		sizes=(k * x + (sizemin)**(1-alpha_L))**(1/(1-alpha_L))
-		l=np.linspace(sizemin,sizemax,256)
-		p=lambda l: 1./k*(l**(1-alpha_L) - sizemin**(1-alpha_L))
-		plt.subplot(2,1,1)
-		plt.xlim([8,100])
-		plt.hist(sizes,bins=100,normed=False,alpha=0.6,color='blue')
-		plt.yscale('log', nonposy='clip')
-		plt.xscale('log')
-		plt.ylabel(r'$\xi(L)$',fontsize=20)
-		plt.subplot(2,1,2)
-		plt.xlim([5,50])
-		plt.plot(l,p(l),'b',label=r'$\alpha_L=$'+str(alpha_L))
-
-		plt.xlabel(r'$L $ [ pc ]',fontsize=20)
-		plt.ylabel(r'$\mathcal{P}(<L)$',fontsize=20)
-	plt.legend(loc='best',prop=10)
-	if not (figpath is None):
-			plt.savefig(figpath)
-
-	plt.show()
-	pass
 
 def plot_2powerlaw_size_function(s0,s1,s2,figpath=None):
+	"""
+	Plot histograms and Probability function of the cloud size function \
+	as explained in eq.(4) and (5) of `Puglisi+ 2017 <http://arxiv.org/abs/1701.07856>`_.
+
+	It is defined by three parameters : `s0`,	`s1`,`s2`, being respectively the,\
+	  typical cloud size (where the size function peaks), the minimum and the maximum sizes. Thus :math:`s_1<s_0<s_2`.
+
+	"""
+
 
 	alpha1=.8
 	spectral=[3.3,3.9]
@@ -99,12 +77,20 @@ def plot_2powerlaw_size_function(s0,s1,s2,figpath=None):
 	pass
 
 def pixelsize(nside,arcmin=True):
+	"""
+	Given a `nside` :mod:`healpy` gridding  parameter  returns the pixel size of the chosen pixelization in arcmin (or in radians if `arcmin= False`)
+	"""
 	if arcmin:
 		return np.sqrt(4./np.pi  /hp.nside2npix(nside))*(180*60.)
 	else :
 		return np.sqrt(4.*np.pi  /hp.nside2npix(nside))
 
 def plot_intensity_integrals(obs_I,mod_I,model=None,fname=None):
+	"""
+	Plot the intensity integrals computed with :func:`integrate_intensity_map` for both
+	 the obseverved  maps(`obs_I`) and the one simulated with MCMole3D `mod_I`.
+	"""
+
 	stringn=['observ','model']
 	for l,s in zip([obs_I,mod_I],stringn):
 		nbins_long=len(l)
@@ -112,11 +98,10 @@ def plot_intensity_integrals(obs_I,mod_I,model=None,fname=None):
 		long_edges=np.linspace(0.,2*np.pi,num=nsteps_long)
 		long_centr=[.5*(long_edges[i]+ long_edges[i+1]) for i in xrange(nbins_long)]
 
-		long_deg=np.array(long_centr)*rad2deg(1.)
+		long_deg=np.array(long_centr)*np.rad2deg(1.)
 		longi=np.concatenate([long_deg[nbins_long/2:nbins_long]-360,long_deg[0:nbins_long/2]])
 		ob=np.concatenate([l[nbins_long/2:nbins_long],l[0:nbins_long/2]])
-		#mod=np.concatenate([mod_I[nbins_long/2:nbins_long],mod_I[0:nbins_long/2]])
-		#plt.plot(longi,mod,'--',label=r'$I^{model}(\ell)$')
+
 		plt.plot(longi,ob,label=r'$I^{'+s+'}(\ell)$')
 	plt.yscale('log')
 	plt.xlim([-180,180])
@@ -136,11 +121,31 @@ def integrate_intensity_map(Imap,nside,latmin=-2,latmax=2. ,nsteps_long=500,rad_
 	"""
 	Compute the integral of the intensity map along latitude and longitude; to compare observed
 	intensity map and the model one.
-	To check consistency of the model we compute:
+	To check consistency of the model we compute the integral as in eqs.(6) and (7) of
+	`Puglisi+ 2017 <http://arxiv.org/abs/1701.07856>`_.
 
-	.. math::
-	\int db d\ell I^{model}(\ell,b) \approx \int db d\ell I^{observ}(\ell,b)
-	see (Bronfman et al. 1988).
+	*Parameters*
+
+	- `Imap`:{array}
+		intensity map
+	- `nside`: {int}
+		:mod:`healpy` gridding parameter
+	- `latmin`, `latmax`:{double}
+		minimum and maximum latitudes in `degree` where to perform the integral (default :math:`\pm 2\, deg`)
+		if you have the angles in radiants set `rad_units` to `True`.
+	- `nsteps_long`:{int}
+		number of longitudinal bins, (default 500)
+	- `planck_map`:{bool}
+		if set to `True`, it sets to zero all  the :mod:`healpy.UNSEEN` masked pixels of the map,
+		(useful when dealing with observational maps).
+
+	**Returns**
+
+	- `I_l` :{array}
+		latitude integration within the set interval :math:`[b_{min}, b_{max}]`
+	- `I_tot`:{double}
+		integration of `I_l` in :math:`\ell \in [0,2 \pi]`.
+
 	"""
 	if planck_map:
 		arr=np.ma.masked_equal(Imap,hp.UNSEEN)
@@ -170,8 +175,23 @@ def integrate_intensity_map(Imap,nside,latmin=-2,latmax=2. ,nsteps_long=500,rad_
 
 def log_spiral_radial_distribution2(rbar,phi_bar,n,rloc,sigmar):
 	"""
+	values of pitch angle from `Vallee'2015 <https://arxiv.org/abs/1505.01202>`_  :math:`i=12` deg.
 
-	values of pitch angle from Vallee' 1505.01202 i=13 deg
+	*Parameters*
+
+	- `rbar`: {float}
+		Galactic radius [kpc] where the bar begins
+	- `phi_bar`: {float}
+		angle :math:`\phi_0` of the bar tip
+	- `n`:{int}
+		 number of clouds to be distributed following the logspiral geometry
+	- `rloc`,`sigmar`:{floats}
+		Location and width of  molecular ring in kpc.
+
+	*Return*
+
+	- `r`, `phi`: {arrays}
+		array (`n`-size) of  galactic radii and azimut angle following a logspiral distribution
 	"""
 	pitch=-12.0*np.pi/180.
 	pitch2=-12.*np.pi/180.
@@ -180,7 +200,7 @@ def log_spiral_radial_distribution2(rbar,phi_bar,n,rloc,sigmar):
 	Rbar=rbar
 	Rmax=12
 	theta0= lambda R,A,B: A *(np.log(abs(R))+B) # this will take negative values .... better to put abs()
-	radii=	norm.rvs(loc=rloc ,scale=sigmar,size=n)	#np.random.uniform(low=Rbar,high=Rmax,size=n)
+	radii=	norm.rvs(loc=rloc ,scale=sigmar,size=n)
 	phi=radii*0.
 	phi[0:n/4]=theta0(radii[0:n/4],1./np.tan(pitch),-np.log(rbar))  -np.pi +phi_bar
 	phi[n/4:n/2]=theta0(radii[n/4:n/2],1./np.tan(pitch2),-np.log(rbar))  -2*np.pi +phi_bar
@@ -199,9 +219,5 @@ def log_spiral_radial_distribution2(rbar,phi_bar,n,rloc,sigmar):
 			continue
 		sigma = abs(m*ir +q)
 		r[i]=norm.rvs(loc=ir ,scale=sigma,size=1)
-	#ax=plt.subplot(111,projection='polar')
-	#plt.plot(phi,r,'.')
-	#plt.plot(phi[less_then_pi],arm0(phi[less_then_pi]),'.')
-	#plt.plot(phi[arr.mask],arm1(phi[arr.mask]),'.')
-	#plt.show()
+
 	return r,phi

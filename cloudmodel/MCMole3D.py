@@ -24,7 +24,14 @@ from utils import log_spiral_radial_distribution2
 
 
 class Cloud(object):
+	"""
+	Object encoding the properties of each cloud, i.e.:
 
+	- :math:`(R,\phi, z )` the Galactic coordinates of the center of the cloud, in units of :math:`(kpc, rad, kpc)`;
+	- :math:`(d_{\odot},\ell, b )` the position referred in the Solar system frame in units of :math:`(kpc, rad,rad)`;
+	- :math:`\epsilon`, the emissivity in the center in units of :math:`K km/s`
+	- :math:`L` the cloud size in units of :math:`pc`
+	"""
 	def assign_sun_coord(self,d,latit,longit):
 
 		self.has_suncoord=True
@@ -32,7 +39,7 @@ class Cloud(object):
 		pass
 	def emissivity(self,R):
 		"""
-		replicating the profile in Heyer Dame 2015
+		replicating the profile in  eq.(3) of `Puglisi+ 2017 <http://arxiv.org/abs/1701.07856>`_
 		"""
 		A 	=	globals()['emiss_params'][0]
 		R0  =	globals()['emiss_params'][1]
@@ -47,12 +54,13 @@ class Cloud(object):
 		pass
 	def size_function(self,R):
 		"""
-		Compute the size in a very wide range of cloud sizes  [0.1,50]pc, from random numbers following
-		the probability distribution function coming from the cloud size function.
-		We split it  in two parts : L>10pc  a decreasing power-law distribution has been asssumed with
-		spectral index alpha_L(see Heyer Dame 2015). In the outer Galaxy a lower spectral index has been measured ~3.3,
-		whereas in the inner Galaxy a steeper one 3.9.
-		If L < 10pc we assume a positive power-law with alpha1=0.8 .
+		Compute the size in a very wide range of cloud sizes  :math:`[s_1,s_2] pc`, from random numbers following
+		the probability distribution function coming from the cloud size function eq.(4) of
+		`Puglisi+ 2017 <http://arxiv.org/abs/1701.07856>`_.
+		We split it  in two parts :
+
+		- if :math:`L>s_0 `  a decreasing power-law distribution has been assumed with spectral index :math:`alpha_L=0.8` (see Heyer Dame 2015).
+		- Otherwise  In the outer Galaxy a lower spectral index has been measured  :math:`alpha_L=3.3`, whereas in the inner Galaxy a steeper one  :math:`alpha_L=3.9`.
 
 		"""
 		s1=globals()['L1']
@@ -85,21 +93,23 @@ class Cloud(object):
 		if (size is None) or (em is  None):
 			self.W=self.emissivity(x1)
 			self.L=self.size_function(x1)
-		#	self.L=norm.rvs(loc=10., scale=30., size=1)
 		else:
 			self.L=size
 			self.W=em
 
 class Cloud_Population(object):
 	"""
-	class w/ a list of `Clouds` objects
+	class encoding  a list of `Clouds` objects. It is initialized by setting the total
+	number of clouds and the geometry you may want to distribute them.
+	It contains `N_clouds` :class:`Cloud` objects.
 	"""
 
 	def cartesianize_coordinates(self,array):
 		"""
-		convert arrays of cylindrical(spherical ) coordinates to cartesian ones. exploit astropy routines.
-
+		convert arrays of cylindrical ( spherical if a Spherical distribution is chosen  ) coordinates to cartesian ones.
+		It exploits :mod:`astropy` routines.
 		"""
+
 		return coord.Galactocentric(array)
 
 	def __call__(self):
@@ -180,7 +190,7 @@ class Cloud_Population(object):
 
 	def compute_healpix_vec(self):
 		"""
-		convert galactic latitude and longitude positions  in healpix mapping quantinties: vec.
+		convert galactic latitude and longitude positions  in :mod:`healpy` mapping quantinties: position vectors.
 		"""
 		rtod=180./np.pi
 		b_h=np.pi/2. - self.lat
@@ -199,7 +209,7 @@ class Cloud_Population(object):
 		return  emiss, sizes
 	def heliocentric_coordinates(self):
 		"""
-		convert Galactocentric coordinates to heliocentri ones
+		convert Galactocentric coordinates to heliocentric ones
 		"""
 		g=self.cartesian_galactocentric.transform_to(coord.Galactic)
 
@@ -226,7 +236,7 @@ class Cloud_Population(object):
 	def plot_histogram_population(self,figname=None):
 		"""
 		Makes histograms of all over the population of clouds to check the probability
-		density functions of coordinates
+		density functions (PDF) of the coordinates :math:`R_{gal}, z, d_{\odot}, \ell`.
 		"""
 		h,edges=np.histogram(self.r,bins=200,normed=True)
 		bins=np.array([(edges[i]+edges[i+1])/2. for i in range(len(h))])
@@ -328,8 +338,8 @@ class Cloud_Population(object):
 
 	def plot_radial(self,X,ylabel,figname=None,color='b'):
 		"""
-		Plot a quantity `X` which may variates across the Galactic radius `R_gal`.
-		It can be the thickness or the emissivity profile
+		Plot a quantity `X` which may variates across the Galactic radius :math:`R_{gal}`.
+		(e.g.  the midplane thickness, the emissivity profile,etc...)
 		"""
 		plt.plot(self.r,X,color+'-')
 		plt.xlabel(r'$R_{gal}\, \mathrm{[kpc]}$ ',fontsize=20)
@@ -392,7 +402,7 @@ class Cloud_Population(object):
 		plt.close()
 	def print_pop(self):
 		"""
-		Output on screen the whole MonteCarlo catalogue of molecular clouds
+		Output on screen the whole Monte-Carlo catalogue of molecular clouds
 		"""
 		from utilities.utilities_functions import bash_colors
 
@@ -422,7 +432,7 @@ class Cloud_Population(object):
 		pass
 	def print_parameters(self):
 		"""
-		print the parameters used to the simulation
+		print the parameters set for  the simulation
 
 		"""
 		typical_size=globals()['L1']
@@ -449,7 +459,7 @@ class Cloud_Population(object):
 
 	def read_pop_fromhdf5(self,filename):
 		"""
-		reading routine from an hdf5.
+		Read from an hdf5 file the cloud population. the :class:`Cloud_Population` is thus  initialized by :func:`initialize_cloud_population_from_output`
 		"""
 		f=h5.File(filename,'r')
 		g=f["Cloud_Population"]
@@ -482,16 +492,16 @@ class Cloud_Population(object):
 		Set key-parameters to the population of clouds.
 
 		- ``radial_distr``:{list}
-			:math:`(\mu_R,FWHM_R, R_bar)` parameters to the  Galactic radius  distribution of the clouds,
+			:math:`(\mu_R,FWHM_R, R_{bar})` parameters to the  Galactic radius  distribution of the clouds,
 			assumed Gaussian. The last parameters is the postition of the bar tip.
-			Default  :math:`\mu_R= 5.3 \, ,\sigma_R=FWHM_R/\sqrt(2 \ln 2)= 2.12, R_{bar}=3` kpc.
+			Default  :math:`\mu_R= 5.3 \, ,\sigma_R=FWHM_R/\sqrt(2 \ln 2)= 2.12,\, R_{bar}=3 \, kpc`.
 		- ``thickness_distr``:{list}
-			:math:`(\FWHM_{z,0}, R_{z,0})` parameters to the vertical thickness of the Galactic plane
+			:math:`(FWHM_{z,0}, R_{z,0})` parameters to the vertical thickness of the Galactic plane
 			increasing in the outer Galaxy with :math:`\sigma(z)=sigma_z(0) *cosh(R/R_{z,0})`.
 			Default  :math:`\sigma_{z,0}=0.1 \, , R_{z,0}=9` kpc.
 		- ``emissivity``:{list}
 			Parameters to the emissivity radial profile, :math:`\epsilon(R)= \epsilon_0 \exp(- R/R_0)`.
-			Default Heyer and Dame values : :math:`\epsilon_0=60\, K km/s,\, R_0=3.6 \, kpc`.
+			Default Heyer and Dame 2015 values : :math:`\epsilon_0=60\, K km/s,\, R_0=3.6 \, kpc`.
 		- ``typical_size``: {scalar}
 			Typical size of molecular clouds where we observe the peak in the size distribution function.
 			Default :math:`L_0=10` pc.
@@ -582,7 +592,10 @@ class Collect_Clouds(Cloud_Population):
 
 
 	def concatenate_arrays(self):
+		"""
+		Concatenate arrays of several :class:`Cloud_Population` objects  to process all of these quantities together
 
+		"""
 		self.r=np.concatenate([p.r for p in  self.Pops])
 		self.phi=np.concatenate([p.phi for p in  self.Pops])
 		self.d_sun=np.concatenate([p.d_sun for p in  self.Pops])
