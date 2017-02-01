@@ -7,7 +7,9 @@ Please install the following packages  before running `MCMole3D`
 - `h5py`
 - `scipy`
 - `astropy`
+
 ##Initializing cloud population
+
 The first thing to do is to set the geometry model `Axisymmetric, Spherical, LogSpiral` in the `string` format and the number of clouds i.e. `N`. To initialize a cloud population with default parameters:
 
 `Pop=Cloud_Population(N,model)
