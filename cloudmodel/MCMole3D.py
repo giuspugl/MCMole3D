@@ -237,6 +237,11 @@ class Cloud_Population(object):
 		"""
 		Makes histograms of all over the population of clouds to check the probability
 		density functions (PDF) of the coordinates :math:`R_{gal}, z, d_{\odot}, \ell`.
+
+		.. note::
+
+			Set `figname` to the path of your file where  to  save the plot, otherwise  it outputs to screen.
+
 		"""
 		h,edges=np.histogram(self.r,bins=200,normed=True)
 		bins=np.array([(edges[i]+edges[i+1])/2. for i in range(len(h))])
@@ -340,6 +345,10 @@ class Cloud_Population(object):
 		"""
 		Plot a quantity `X` which may variates across the Galactic radius :math:`R_{gal}`.
 		(e.g.  the midplane thickness, the emissivity profile,etc...)
+
+		.. note::
+
+			Set `figname` to the path of your file where  to  save the plot, otherwise  it outputs to screen.
 		"""
 		plt.plot(self.r,X,color+'-')
 		plt.xlabel(r'$R_{gal}\, \mathrm{[kpc]}$ ',fontsize=20)
@@ -353,7 +362,11 @@ class Cloud_Population(object):
 
 	def plot_3d_population(self,figname=None):
 		"""
-		Makes density contour plots of all the cloud population
+		Makes density contour plots of all the cloud population.
+
+		.. note::
+
+			Set `figname` to the path of your file where  to  save the plot, otherwise  it outputs to screen.
 		"""
 
 		from matplotlib import gridspec,colors

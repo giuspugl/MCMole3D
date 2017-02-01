@@ -16,13 +16,17 @@ from scipy.stats import norm
 
 
 
-def plot_2powerlaw_size_function(s0,s1,s2,figpath=None):
+def plot_2powerlaw_size_function(s0,s1,s2,figname=None):
 	"""
 	Plot histograms and Probability function of the cloud size function \
 	as explained in eq.(4) and (5) of `Puglisi+ 2017 <http://arxiv.org/abs/1701.07856>`_.
 
 	It is defined by three parameters : `s0`,	`s1`,`s2`, being respectively the,\
 	  typical cloud size (where the size function peaks), the minimum and the maximum sizes. Thus :math:`s_1<s_0<s_2`.
+
+	  .. note::
+
+		  Set `figname` to the path of your file where  to  save the plot, otherwise  it outputs to screen.
 
 	"""
 
@@ -71,8 +75,8 @@ def plot_2powerlaw_size_function(s0,s1,s2,figpath=None):
 		plt.xlabel(r'$L $ [ pc ]',fontsize=20)
 		plt.ylabel(r'$\mathcal{P}(<L)$',fontsize=20)
 	plt.legend(loc='best',prop={'size':15})
-	if not (figpath is None):
-			plt.savefig(figpath)
+	if not (figname is None):
+			plt.savefig(figname)
 	plt.show()
 	pass
 
@@ -85,10 +89,15 @@ def pixelsize(nside,arcmin=True):
 	else :
 		return np.sqrt(4.*np.pi  /hp.nside2npix(nside))
 
-def plot_intensity_integrals(obs_I,mod_I,model=None,fname=None):
+def plot_intensity_integrals(obs_I,mod_I,model=None,figname=None):
 	"""
 	Plot the intensity integrals computed with :func:`integrate_intensity_map` for both
 	 the obseverved  maps(`obs_I`) and the one simulated with MCMole3D `mod_I`.
+
+	 .. note::
+
+		 - Set `figname` to the path of your file where  to  save the plot, otherwise  it outputs to screen.
+		 - Set `model` to put the title and the 
 	"""
 
 	stringn=['observ','model']
@@ -112,10 +121,10 @@ def plot_intensity_integrals(obs_I,mod_I,model=None,fname=None):
 	plt.legend(loc='best',prop={'size':15})
 	if not model is None:
 		plt.title(model+' Model')
-	if fname is None:
+	if figname is None:
 		plt.show()
 	else :
-		plt.savefig(fname)
+		plt.savefig(figname)
 
 def integrate_intensity_map(Imap,nside,latmin=-2,latmax=2. ,nsteps_long=500,rad_units=False,planck_map=False):
 	"""
