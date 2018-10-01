@@ -36,7 +36,7 @@ def plot_2powerlaw_size_function(s0,s1,s2,figname=None):
 	coldict=dict.fromkeys(spectral)
 	coldict={i:j for i,j in zip(spectral,['blue','red'])}
 
-	for alpha2,col in zip(spectral,['b-','r-']):
+	for alpha2,col in zip(spectral,['b-','r--']):
 	#normalization constant such that Integral(dP)=1 in [sizemin,sizemax]
 
 		k2=1./(  1./(alpha1 + 1.) *s1**(-alpha1-alpha2) *( s1**(1+alpha1 )- s0**(1+alpha1) ) \
@@ -97,7 +97,7 @@ def plot_intensity_integrals(obs_I,mod_I,model=None,figname=None):
 	 .. note::
 
 		 - Set `figname` to the path of your file where  to  save the plot, otherwise  it outputs to screen.
-		 - Set `model` to put the title and the 
+		 - Set `model` to put the title and the
 	"""
 
 	stringn=['observ','model']
