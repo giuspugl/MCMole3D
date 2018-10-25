@@ -62,7 +62,7 @@ def distance_from_cloud_center(theta,phi,theta_c,phi_c):
 
 	return psi
 
-def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map=None, p=1.e-2,highgalcut=0. ):
+def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map=None, p=1.e-2,highgalcut=0., verbose=False ):
 	"""
 	Projects the cloud  population into an :mod:`healpy` map as seen as an observer in the 	solar circle.
 
@@ -109,9 +109,13 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map
 		angularsize =	sizekpc[i]/Pop.d_sun[i]
 		I=Pop.W[i]
 		theta_c,phi_c= hp.vec2ang(vec)
-		if  np.sin(theta_c)<= sincut  and  angularsize> 10./(180.*60)*np.pi :
-			cloudcount+=1
-			continue
+		if  np.sin(theta_c)<= sincut :
+			if   angularsize> np.deg2rad (10./ 60) :
+				cloudcount+=1
+				#print np.rad2deg(angularsize)
+				continue
+			else:
+				print np.rad2deg(angularsize) , I
 
 		listpix=hp.query_disc(nside,vec,angularsize)
 		theta_pix,phi_pix=hp.pix2ang(nside, listpix )
@@ -140,7 +144,7 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map
 			mapcloud[listpix]	+= I*profile
 	if not fname is None:
 		hp.write_map(fname,mapcloud)
-	if cloudcount!=0:
+	if cloudcount!=0 and verbose :
 		print "Excluded %d clouds at high galactic latitude. (|b|>%g)\n"%(cloudcount,(np.pi/2. - highgalcut)*180./np.pi)
 
 	return mapcloud

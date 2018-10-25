@@ -151,8 +151,8 @@ class Cloud_Population(object):
 			elif 	self.model=='LogSpiral':
 				#the bar is assumed axisymmetric and with an inclination angle phi0~25 deg as
 				#it has been measured by  Fux et al. 1999
-				from utils import deg2rad
-				phi_0=deg2rad(25.)
+
+				phi_0=np.deg2rad(25.)
 				self.phi+=phi_0
 				subsize=self.n/10
 				self.r[0:subsize]=norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=subsize)
@@ -186,6 +186,8 @@ class Cloud_Population(object):
 			for c,d,latit,longit in zip(self.clouds,self.d_sun,self.lat,self.long):
 				c.assign_sun_coord(d,latit,longit)
 		self.L=np.array(self.sizes)
+		self.healpix_vecs=self.compute_healpix_vec()
+		self.W=self.get_pop_emissivities_sizes()[0]
 
 
 	def compute_healpix_vec(self):
@@ -535,12 +537,11 @@ class Cloud_Population(object):
 		Write onto an hfd5 file the whole catalogue
 
 		"""
-		W,L=self.get_pop_emissivities_sizes()
-		healpix_vecs=self.compute_healpix_vec()
+
 
 		f=h5.File(filename,'w')
 		g=f.create_group("Cloud_Population")
-		g.create_dataset('Healpix_Vec',np.shape(healpix_vecs),dtype=h5.h5t.IEEE_F64BE,data=healpix_vecs)
+		g.create_dataset('Healpix_Vec',np.shape(self.healpix_vecs),dtype=h5.h5t.IEEE_F64BE,data=self.healpix_vecs)
 		g.create_dataset('R',np.shape(self.r),dtype=h5.h5t.IEEE_F64BE,data=self.r)
 		g.create_dataset('Phi',np.shape(self.phi),dtype=h5.h5t.IEEE_F64BE,data=self.phi)
 		if self.models[self.model]==1:
@@ -627,10 +628,9 @@ class Collect_Clouds(Cloud_Population):
 		Write onto an hfd5 file the whole catalogue
 
 		"""
-		healpix_vecs=np.concatenate([p.compute_healpix_vec() for p in self.Pops])
 		f=h5.File(filename,'w')
 		g=f.create_group("Cloud_Population")
-		g.create_dataset('Healpix_Vec',np.shape(healpix_vecs),dtype=h5.h5t.IEEE_F64BE,data=healpix_vecs)
+		g.create_dataset('Healpix_Vec',np.shape(self.healpix_vecs),dtype=h5.h5t.IEEE_F64BE,data=self.healpix_vecs)
 		g.create_dataset('R',np.shape(self.r),dtype=h5.h5t.IEEE_F64BE,data=self.r)
 		g.create_dataset('Phi',np.shape(self.phi),dtype=h5.h5t.IEEE_F64BE,data=self.phi)
 		if self.models[self.model]==1:

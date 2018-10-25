@@ -97,7 +97,7 @@ def plot_intensity_integrals(obs_I,mod_I,model=None,figname=None):
 	 .. note::
 
 		 - Set `figname` to the path of your file where  to  save the plot, otherwise  it outputs to screen.
-		 - Set `model` to put the title and the 
+		 - Set `model` to put the title and the
 	"""
 
 	stringn=['observ','model']
@@ -162,8 +162,8 @@ def integrate_intensity_map(Imap,nside,latmin=-2,latmax=2. ,nsteps_long=500,rad_
 
 
 	if not rad_units:
-		latmin=np.pi/2.+(deg2rad(latmin))
-		latmax=np.pi/2.+(deg2rad(latmax))
+		latmin=np.pi/2.+(np.deg2rad(latmin))
+		latmax=np.pi/2.+(np.deg2rad(latmax))
 
 	nbins_long=nsteps_long-1
 	long_edges=np.linspace(0.,2*np.pi,num=nsteps_long)
