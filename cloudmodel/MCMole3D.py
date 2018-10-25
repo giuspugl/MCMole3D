@@ -59,8 +59,8 @@ class Cloud(object):
 		`Puglisi+ 2017 <http://arxiv.org/abs/1701.07856>`_.
 		We split it  in two parts :
 
-		- if :math:`L>s_0`  a decreasing power-law distribution has been assumed with spectral index :math:`\alpha_L=0.8` (see Heyer Dame 2015).
-		- Otherwise  In the outer Galaxy a lower spectral index has been measured  :math:`\alpha_L=3.3`, whereas in the inner Galaxy a steeper one  :math:`\alpha_L=3.9`.
+		- if :math:`L>s_0`  a decreasing power-law distribution has been assumed with spectral index :math:`a_L=0.8` (see Heyer Dame 2015).
+		- Otherwise  In the outer Galaxy a lower spectral index has been measured  :math:`a_L=3.3`, whereas in the inner Galaxy a steeper one  :math:`a_L=3.9`.
 
 		"""
 		s1=globals()['L1']
