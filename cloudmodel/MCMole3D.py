@@ -115,7 +115,7 @@ class Cloud_Population(object):
 	def __call__(self):
 
 		self.clouds=[]
-		if self.random_seed: np.random.seed(11)
+		np.random.seed(11 +self.random_seed)
 
 		a=np.random.uniform(low=0.,high=1.,size=self.n)
 		self.phi=2.*np.pi*a
@@ -143,7 +143,7 @@ class Cloud_Population(object):
 			rbar=self.R_params[2]
 
 			if self.model=='Axisymmetric':
-				if self.random_seed: np.random.seed(29)
+				np.random.seed(self.random_seed + 29)
 				self.r= norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=self.n)
 				negs=np.ma.masked_less(self.r,0.)
 				#central molecular zone
@@ -175,7 +175,7 @@ class Cloud_Population(object):
 
 			sigma_z=lambda R: sigma_z0*np.cosh((R/R_z0))
 			self.zeta=self.phi*0.
-			if self.random_seed: np.random.seed(19)
+			np.random.seed(self.random_seed + 19)
 			for i,x,p in zip(np.arange(self.n),self.r,self.phi):
 				self.zeta[i]=np.random.normal(loc=0.,scale=sigma_z(x) )
 				self.clouds.append(Cloud(i,x,p,self.zeta[i],size=None,em=None))
@@ -559,7 +559,7 @@ class Cloud_Population(object):
 		pass
 
 
-	def __init__(self, N_clouds,model, randseed=False ):
+	def __init__(self, N_clouds,model, randseed=0):
 		self.model=model
 		self.models={'Spherical':1,'Axisymmetric':2,'LogSpiral':3}
 		#it's possible to execute simulations with the same random seed
