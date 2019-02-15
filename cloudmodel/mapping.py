@@ -62,7 +62,7 @@ def distance_from_cloud_center(theta,phi,theta_c,phi_c):
 
 	return psi
 
-def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map=None, p=1.e-2,highgalcut=0., verbose=False ):
+def do_healpy_map(Pop,nside,fname=None,apodization='gaussian',polangle=None,depol_map=None, p=1.e-2,highgalcut=0., verbose=False ):
 	"""
 	Projects the cloud  population into an :mod:`healpy` map as seen as an observer in the 	solar circle.
 
@@ -110,7 +110,7 @@ def do_healpy_map(Pop,nside,fname,apodization='gaussian',polangle=None,depol_map
 		I=Pop.W[i]
 		theta_c,phi_c= hp.vec2ang(vec)
 		if  np.sin(theta_c)<= sincut :
-			if   angularsize> np.deg2rad (10./ 60) :
+			if   angularsize> np.deg2rad (0.5) : #10./60. 
 				cloudcount+=1
 				#print np.rad2deg(angularsize)
 				continue
