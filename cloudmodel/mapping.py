@@ -83,7 +83,8 @@ def do_healpy_map(Pop,nside,fname=None,apodization='gaussian',polangle=None,depo
 	- ``p``: {float}
 		polarization fraction ( default 1%)
 	- ``highgalcut``: {float}
-		angle in radians to exclude clouds at high galactic latitudes, `sin(b)<= sin(angle)`;
+		angle in radians to exclude clouds at high galactic latitudes,
+		`sin(b)<= sin(angle)`;
 
 	.. note::
 
@@ -109,13 +110,14 @@ def do_healpy_map(Pop,nside,fname=None,apodization='gaussian',polangle=None,depo
 		angularsize =	sizekpc[i]/Pop.d_sun[i]
 		I=Pop.W[i]
 		theta_c,phi_c= hp.vec2ang(vec)
-		if  np.sin(theta_c)<= sincut :
-			if   angularsize> np.deg2rad (0.5) : #10./60. 
-				cloudcount+=1
-				#print np.rad2deg(angularsize)
-				continue
-			else:
-				print np.rad2deg(angularsize) , I
+		# Exclude HGL clouds  (with too large  angular size, 3 degrees)
+		#
+		is_hgl =  ( np.sin(theta_c -  angularsize/2.  )< sincut) or \
+					( np.sin(theta_c  +   angularsize/2.  )< sincut)
+
+		if  is_hgl  and angularsize > np.deg2rad(3):
+			cloudcount+=1
+			continue
 
 		listpix=hp.query_disc(nside,vec,angularsize)
 		theta_pix,phi_pix=hp.pix2ang(nside, listpix )
