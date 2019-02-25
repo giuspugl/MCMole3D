@@ -4,7 +4,7 @@
 #
 #   date: 2016-12-02
 #   author: GIUSEPPE PUGLISI
-#
+#   python3.6
 #   Copyright (C) 2016   Giuseppe Puglisi    giuspugl@sissa.it
 #
 
@@ -20,8 +20,36 @@ from scipy.stats import norm,gaussian_kde,uniform
 from  scipy import histogram2d
 import astropy.units  as u
 import astropy.coordinates  as coord
-from utils import log_spiral_radial_distribution2
+from .utils import log_spiral_radial_distribution2
 
+class bash_colors:
+    """
+    This class contains the necessary definitions to print to bash
+    screen with colors. Sometimes it can be useful...
+    """
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+    def header(self,string):
+        return self.HEADER+str(string)+self.ENDC
+    def blue(self,string):
+        return self.OKBLUE+str(string)+self.ENDC
+    def green(self,string):
+        return self.OKGREEN+str(string)+self.ENDC
+    def warning(self,string):
+        return self.WARNING+str(string)+self.ENDC
+    def fail(self,string):
+        return self.FAIL+str(string)+self.ENDC
+    def bold(self,string):
+        return self.BOLD+str(string)+self.ENDC
+    def underline(self,string):
+        return self.UNDERLINE+str(string)+self.ENDC
 
 class Cloud(object):
 	"""
@@ -47,10 +75,10 @@ class Cloud(object):
 
 	def print_cloudinfo(self):
 		if not self.has_suncoord:
-			print "%d \t %g \t %g \t %g \t %g \t %g\n"%(self.id,self.X[0],self.X[1],self.X[2],self.W,self.L)
+			print("%d \t %g \t %g \t %g \t %g \t %g\n"%(self.id,self.X[0],self.X[1],self.X[2],self.W,self.L))
 		elif self.has_suncoord:
-			print "%d \t %g \t %g \t %g \t %g \t %g\t %g \t %g \t %g \n"%(self.id,self.X[0],self.X[1],self.X[2],self.W,self.L,\
-																	self.X_sun[0],self.X_sun[1]*180./np.pi,self.X_sun[2]*180./np.pi)
+			print("%d \t %g \t %g \t %g \t %g \t %g\t %g \t %g \t %g \n"%(self.id,self.X[0],self.X[1],self.X[2],self.W,self.L,\
+																	self.X_sun[0],self.X_sun[1]*180./np.pi,self.X_sun[2]*180./np.pi))
 		pass
 	def size_function(self,R):
 		"""
@@ -154,7 +182,7 @@ class Cloud_Population(object):
 
 				phi_0=np.deg2rad(25.)
 				self.phi+=phi_0
-				subsize=self.n/10
+				subsize=np.int( self.n/10 )
 				self.r[0:subsize]=norm.rvs(loc=self.R_params[0],scale=self.R_params[1],size=subsize)
 				#np.random.uniform(low=0.,high=8.,size=self.n/4)
 				rscale=rbar/1.5
@@ -226,9 +254,9 @@ class Cloud_Population(object):
 		self.read_pop_fromhdf5(filename)
 
 		if self.models[self.model]==1:
-			zipped=zip(np.arange(self.n),self.r,self.phi,self.theta,self.L,self.W,self.d_sun,self.lat,self.long)
+			zipped=list(zip(np.arange(self.n),self.r,self.phi,self.theta,self.L,self.W,self.d_sun,self.lat,self.long))
 		elif self.models[self.model]>=2:
-			zipped=zip(np.arange(self.n),self.r,self.phi,self.zeta,self.L,self.W,self.d_sun,self.lat,self.long)
+			zipped=list(zip(np.arange(self.n),self.r,self.phi,self.zeta,self.L,self.W,self.d_sun,self.lat,self.long))
 		for i,r,p,t,l,w,d,latit,longit in zipped:
 			c=Cloud(i,r,p,t,size=l,em=w)
 			c.assign_sun_coord(d,latit,longit)
@@ -380,7 +408,7 @@ class Cloud_Population(object):
 		fig=plt.figure(figsize=(15,15))
 		gs  = gridspec.GridSpec(3, 1 )#width_ratios=[1.5, 2,1.5],height_ratios=[1.5,2,1.5])
 
-		for a in planes.keys():
+		for a in list(planes.keys()):
 			x,y=planes[a]
 			a1,a2=a.split("-",2)
 
@@ -419,28 +447,28 @@ class Cloud_Population(object):
 		"""
 		Output on screen the whole Monte-Carlo catalogue of molecular clouds
 		"""
-		from utilities.utilities_functions import bash_colors
+
 
 		cols=bash_colors()
-		print cols.header("###"*40)
-		print cols.blue(cols.bold(str(self.n)+" Clouds simulated assuming a "+self.model+" model\n"))
+		print(cols.header("###"*40))
+		print(cols.blue(cols.bold(str(self.n)+" Clouds simulated assuming a "+self.model+" model\n")))
 		if self.d_sun is None:
 			if self.model=='Spherical':
-				print cols.green("ID \t R \t\t PHI  \t\t THETA\t\t Emissivity \t Size \n")
-				print cols.green(" \t[kpc]\t\t[rad]\t\t [rad]\t\t  [K km/s]\t [pc]\t [kpc] \t [deg] \t [deg] \n")
+				print(cols.green("ID \t R \t\t PHI  \t\t THETA\t\t Emissivity \t Size \n"))
+				print(cols.green(" \t[kpc]\t\t[rad]\t\t [rad]\t\t  [K km/s]\t [pc]\t [kpc] \t [deg] \t [deg] \n"))
 
 			else:
-				print cols.green("ID \t R  \t\t PHI\t\t Z \t\t Emissivity\t Size \n")
-				print cols.green(" \t[kpc]\t\t[rad]\t\t[kpc]\t\t[K km/s]\t[pc]\t[kpc] \t [deg] \t [deg]\n")
-			print cols.header("---"*40)
+				print(cols.green("ID \t R  \t\t PHI\t\t Z \t\t Emissivity\t Size \n"))
+				print(cols.green(" \t[kpc]\t\t[rad]\t\t[kpc]\t\t[K km/s]\t[pc]\t[kpc] \t [deg] \t [deg]\n"))
+			print(cols.header("---"*40))
 		else :
 			if self.model=='Spherical':
-				print cols.green("ID \t R \t\t PHI  \t\t THETA\t\t Emissivity \t Size \t\t D_sun \t\t b \t\tl\n")
-				print cols.green(" \t[kpc]\t\t[rad]\t\t [rad]\t\t  [K km/s]\t [pc]\t\t[kpc] \t\t [deg] \t\t [deg]\n")
+				print(cols.green("ID \t R \t\t PHI  \t\t THETA\t\t Emissivity \t Size \t\t D_sun \t\t b \t\tl\n"))
+				print(cols.green(" \t[kpc]\t\t[rad]\t\t [rad]\t\t  [K km/s]\t [pc]\t\t[kpc] \t\t [deg] \t\t [deg]\n"))
 			else:
-				print cols.green("ID \t R  \t\t PHI\t\t Z \t\t Emissivity\t Size \t\t D_sun \t\t b \t\tl\n")
-				print cols.green(" \t[kpc]\t\t[rad]\t\t[kpc]\t\t[K km/s]\t[pc]\t\t[kpc] \t\t [deg] \t\t [deg]\n")
-			print cols.header("---"*40)
+				print(cols.green("ID \t R  \t\t PHI\t\t Z \t\t Emissivity\t Size \t\t D_sun \t\t b \t\tl\n"))
+				print(cols.green(" \t[kpc]\t\t[rad]\t\t[kpc]\t\t[K km/s]\t[pc]\t\t[kpc] \t\t [deg] \t\t [deg]\n"))
+			print(cols.header("---"*40))
 		for c in self.clouds:
 			c.print_cloudinfo()
 
@@ -453,23 +481,23 @@ class Cloud_Population(object):
 		typical_size=globals()['L1']
 		minsize,maxsize=globals()['L0'],globals()['L2']
 		emissivity=globals()['emiss_params']
-		from utilities.utilities_functions import bash_colors
+		
 
 		cols=bash_colors()
-		print cols.header("###"*20)
-		print cols.blue("Parameters  to MCMole3D")
-		print "---"*20
-		print cols.green("Model\t\t\t\t....\t"),cols.bold(self.model)
-		print cols.green("#clouds\t\t\t\t....\t"),cols.bold(self.n)
-		print cols.green("Molecular Ring [location,width]\t....\t"),cols.bold("%g,%g\t"%(self.R_params[0],self.R_params[1])),"kpc"
-		print cols.green("Central Midplane Thickness\t....\t"),cols.bold("%g\t"%(self.z_distr[0]*1000)),"pc"
-		print cols.green("Radius of the Galactic Bar \t....\t"),cols.bold("%g\t"%(self.R_params[2])),"kpc"
-		print cols.green("Scale Radius Midplane Thickness\t....\t"),cols.bold("%g\t"%self.z_distr[1]),"kpc"
-		print cols.green("Amplitude Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[0]),"K km/s"
-		print cols.green("Scale Radius Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[1]),"kpc"
-		print cols.green("Cloud Typical size\t\t....\t"),cols.bold("%g\t"%typical_size),"pc"
-		print cols.green("Cloud size [min,max]\t\t....\t"),cols.bold("%g,%g\t"%(minsize,maxsize)),"pc"
-		print cols.header("###"*20)
+		print(cols.header("###"*20))
+		print(cols.blue("Parameters  to MCMole3D"))
+		print("---"*20)
+		print(cols.green("Model\t\t\t\t....\t"),cols.bold(self.model))
+		print(cols.green("#clouds\t\t\t\t....\t"),cols.bold(self.n))
+		print(cols.green("Molecular Ring [location,width]\t....\t"),cols.bold("%g,%g\t"%(self.R_params[0],self.R_params[1])),"kpc")
+		print(cols.green("Central Midplane Thickness\t....\t"),cols.bold("%g\t"%(self.z_distr[0]*1000)),"pc")
+		print(cols.green("Radius of the Galactic Bar \t....\t"),cols.bold("%g\t"%(self.R_params[2])),"kpc")
+		print(cols.green("Scale Radius Midplane Thickness\t....\t"),cols.bold("%g\t"%self.z_distr[1]),"kpc")
+		print(cols.green("Amplitude Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[0]),"K km/s")
+		print(cols.green("Scale Radius Emissivity profile\t....\t"),cols.bold("%g\t"%emissivity[1]),"kpc")
+		print(cols.green("Cloud Typical size\t\t....\t"),cols.bold("%g\t"%typical_size),"pc")
+		print(cols.green("Cloud size [min,max]\t\t....\t"),cols.bold("%g,%g\t"%(minsize,maxsize)),"pc")
+		print(cols.header("###"*20))
 		pass
 
 	def read_pop_fromhdf5(self,filename):
@@ -499,7 +527,7 @@ class Cloud_Population(object):
 
 		cols=bash_colors()
 		f.close()
-		print cols.bold("////// \t read from "+filename+"\t ////////")
+		print(cols.bold("////// \t read from "+filename+"\t ////////"))
 		pass
 	def set_parameters(self,radial_distr=[5.3,2.5,3],emissivity=[60,3.59236], thickness_distr=[0.1,9.],\
 							typical_size=10.,size_range=[0.3,30]):
@@ -591,7 +619,7 @@ class Collect_Clouds(Cloud_Population):
 		super(Collect_Clouds,self).__init__(Ncl,model)
 		self.Pops=[]
 		#compute the populations
-		for i in xrange(N_pops):
+		for i in range(N_pops):
 			pop=Cloud_Population(self.n,self.model)
 			if filestring is None:
 				pop()

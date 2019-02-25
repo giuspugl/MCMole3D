@@ -4,7 +4,7 @@
 #
 #   date: 2016-12-02
 #   author: GIUSEPPE PUGLISI
-#
+#   python3.6
 #   Copyright (C) 2016   Giuseppe Puglisi    giuspugl@sissa.it
 #
 
@@ -105,7 +105,7 @@ def do_healpy_map(Pop,nside,fname=None,apodization='gaussian',polangle=None,depo
 
 	sincut=np.sin(highgalcut)
 	cloudcount=0
-	for i in xrange(N):
+	for i in range(N):
 		vec 		=	Pop.healpix_vecs[i]
 		angularsize =	sizekpc[i]/Pop.d_sun[i]
 		I=Pop.W[i]
@@ -147,6 +147,6 @@ def do_healpy_map(Pop,nside,fname=None,apodization='gaussian',polangle=None,depo
 	if not fname is None:
 		hp.write_map(fname,mapcloud)
 	if cloudcount!=0 and verbose :
-		print "Excluded %d clouds at high galactic latitude. (|b|>%g)\n"%(cloudcount,(np.pi/2. - highgalcut)*180./np.pi)
+		print(("Excluded %d clouds at high galactic latitude. (|b|>%g)\n"%(cloudcount,(np.pi/2. - highgalcut)*180./np.pi)))
 
 	return mapcloud

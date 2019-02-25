@@ -3,7 +3,7 @@
 #   miscellaneous  functions
 #   date: 2016-12-02
 #   author: GIUSEPPE PUGLISI
-#
+#   python3.6
 #   Copyright (C) 2016   Giuseppe Puglisi    giuspugl@sissa.it
 #
 
@@ -105,7 +105,7 @@ def plot_intensity_integrals(obs_I,mod_I,model=None,figname=None):
 		nbins_long=len(l)
 		nsteps_long=nbins_long+1
 		long_edges=np.linspace(0.,2*np.pi,num=nsteps_long)
-		long_centr=[.5*(long_edges[i]+ long_edges[i+1]) for i in xrange(nbins_long)]
+		long_centr=[.5*(long_edges[i]+ long_edges[i+1]) for i in range(nbins_long)]
 
 		long_deg=np.array(long_centr)*np.rad2deg(1.)
 		longi=np.concatenate([long_deg[nbins_long/2:nbins_long]-360,long_deg[0:nbins_long/2]])
@@ -167,9 +167,9 @@ def integrate_intensity_map(Imap,nside,latmin=-2,latmax=2. ,nsteps_long=500,rad_
 
 	nbins_long=nsteps_long-1
 	long_edges=np.linspace(0.,2*np.pi,num=nsteps_long)
-	long_centr=[.5*(long_edges[i]+ long_edges[i+1]) for i in xrange(nbins_long)]
+	long_centr=[.5*(long_edges[i]+ long_edges[i+1]) for i in range(nbins_long)]
 	listpix=[]
-	for i in xrange(nbins_long):
+	for i in range(nbins_long):
 		v=[ hp.ang2vec(latmax, long_edges[i]),
 			hp.ang2vec(latmax, long_edges[i+1]),
 			hp.ang2vec(latmin, long_edges[i+1]),
@@ -211,10 +211,11 @@ def log_spiral_radial_distribution2(rbar,phi_bar,n,rloc,sigmar):
 	theta0= lambda R,A,B: A *(np.log(abs(R))+B) # this will take negative values .... better to put abs()
 	radii=	norm.rvs(loc=rloc ,scale=sigmar,size=n)
 	phi=radii*0.
-	phi[0:n/4]=theta0(radii[0:n/4],1./np.tan(pitch),-np.log(rbar))  -np.pi +phi_bar
-	phi[n/4:n/2]=theta0(radii[n/4:n/2],1./np.tan(pitch2),-np.log(rbar))  -2*np.pi +phi_bar
-	phi[n/2:3*n/4]=theta0(radii[n/2:3*n/4],1./np.tan(pitch3),-np.log(rbar))  -np.pi/2. +phi_bar
-	phi[3*n/4:n]=theta0(radii[3*n/4:n],1./np.tan(pitch),-np.log(rbar))  -3.*np.pi/2. +phi_bar
+
+	phi[0:np.int(n/4)]=theta0(radii[0:np.int(n/4)],1./np.tan(pitch),-np.log(rbar))  -np.pi +phi_bar
+	phi[np.int(n/4):np.int(n/2)]=theta0(radii[np.int(n/4):np.int(n/2)],1./np.tan(pitch2),-np.log(rbar))  -2*np.pi +phi_bar
+	phi[np.int(n/2):np.int(3*n/4)]=theta0(radii[np.int(n/2):np.int(3*n/4)],1./np.tan(pitch3),-np.log(rbar))  -np.pi/2. +phi_bar
+	phi[np.int(3*n/4):n]=theta0(radii[np.int(3*n/4):n],1./np.tan(pitch),-np.log(rbar))  -3.*np.pi/2. +phi_bar
 
 	r=radii*0.
 	sigmamin=.30#kpc
