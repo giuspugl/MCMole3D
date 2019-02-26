@@ -1,6 +1,6 @@
 # MCMOLE3D  TUTORIAL
 
-##Package Dependencies
+## Package Dependencies
 Please install the following packages  before running `MCMole3D`
 - `numpy`
 - `healpy`
@@ -8,7 +8,7 @@ Please install the following packages  before running `MCMole3D`
 - `scipy`
 - `astropy`
 
-##Initializing cloud population
+## Initializing cloud population
 
 The first thing to do is to set the geometry model `Axisymmetric, Spherical, LogSpiral` in the `string` format and the number of clouds i.e. `N`. To initialize a cloud population with default parameters:
 
@@ -43,8 +43,8 @@ The class `Cloud_Population` can be initialized from output just after having ca
 
 `Pop.initialize_cloud_population_from_output(filename)`
 
-##Projecting clouds into a `HEALPIX` map
-set the `Healpix` grid parameter `nside` among one of the possible values [see healpy website ](http://healpy.readthedocs.io/en/latest/). The map is  saved into a `.fits` file.
+## Projecting clouds into a `HEALPIX` map
+set the `Healpix` grid parameter `nside` among one of the possible values [see healpy website](http://healpy.readthedocs.io/en/latest/). The map is  saved into a `.fits` file.
 
 `mapcloud=do_healpy_map(Pop,nside,filename.fits)`
 `
@@ -52,7 +52,8 @@ set the `Healpix` grid parameter `nside` among one of the possible values [see h
 To compare the simulated maps and the observations we compute the integral in a longitudinal strip  along the Galactic plane, (for further references see [Puglisi et al 2017](http://arxiv.org/abs/1701.07856) ).
 
 <aside class="warning">
-The simulations and observation  maps have to be in the same pixel format:  MCMole3D simulation maps are stored choosing a  `ring Healpix` ordering, whereas the Planck maps are released in the `Nested` ordering, you have to reorder one of them to the other's ordering. See the [`Healpix` website](http://healpix.jpl.nasa.gov/html/main.htm) and its `ud_grade` routine  for further readings about it.
+The simulations and observation  maps have to be in the same pixel format:  MCMole3D simulation maps are stored choosing a  `ring Healpix` ordering, whereas the Planck maps are released in the `Nested` ordering, you have to reorder one of them to the other's ordering.
+See the [Healpix website](http://healpix.jpl.nasa.gov) and its `ud_grade` routine  for further readings about it.
 </aside>
 
 `Itot,I_l=integrate_intensity_map(map,nside)`

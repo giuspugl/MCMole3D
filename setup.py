@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="mcmole3d-giuspugl",
-    version="2.0.0",
+    version="0.0.1",
     author="Giuseppe Puglisi",
     author_email="giuse.puglisi@gmail.com",
     description="Monte-Carlo realization of Galactic CO  emission",
