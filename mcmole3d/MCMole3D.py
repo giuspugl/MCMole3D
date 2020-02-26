@@ -481,7 +481,7 @@ class Cloud_Population(object):
 		typical_size=globals()['L1']
 		minsize,maxsize=globals()['L0'],globals()['L2']
 		emissivity=globals()['emiss_params']
-		
+
 
 		cols=bash_colors()
 		print(cols.header("###"*20))
@@ -587,10 +587,12 @@ class Cloud_Population(object):
 		pass
 
 
-	def __init__(self, N_clouds,model, randseed=0):
+	def __init__(self, N_clouds,model, randseed=None ):
 		self.model=model
 		self.models={'Spherical':1,'Axisymmetric':2,'LogSpiral':3}
 		#it's possible to execute simulations with the same random seed
+		if randseed is None:
+			randseed=pl.random.randint(0, high=1e4)
 		self.random_seed=randseed
 
 		if self.models[model]==1:
